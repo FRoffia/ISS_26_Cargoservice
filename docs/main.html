@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CargoService — Sprint 0</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: #1a1a1a;
+    background: #fff;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    border-bottom: 3px solid #534AB7;
+    padding-bottom: 24px;
+    margin-bottom: 40px;
+  }
+  .doc-header .label {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #534AB7;
+    margin-bottom: 8px;
+  }
+  .doc-header h1 {
+    font-size: 32px;
+    font-weight: normal;
+    color: #1a1a1a;
+    margin-bottom: 4px;
+  }
+  .doc-header .subtitle {
+    font-size: 15px;
+    color: #666;
+    font-style: italic;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    background: #f7f6ff;
+    border-left: 4px solid #534AB7;
+    padding: 20px 24px;
+    margin-bottom: 48px;
+    border-radius: 0 4px 4px 0;
+  }
+  .toc h2 {
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #534AB7;
+    margin-bottom: 12px;
+  }
+  .toc ol {
+    margin-left: 20px;
+  }
+  .toc li {
+    margin-bottom: 4px;
+    font-size: 15px;
+  }
+  .toc a {
+    color: #1a1a1a;
+    text-decoration: none;
+  }
+  .toc a:hover { text-decoration: underline; color: #534AB7; }
+
+  /* ── Sections ── */
+  section {
+    margin-bottom: 52px;
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: normal;
+    color: #534AB7;
+    border-bottom: 1px solid #d9d7f7;
+    padding-bottom: 6px;
+    margin-bottom: 20px;
+    margin-top: 0;
+  }
+  h2 .section-num {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #999;
+    margin-right: 8px;
+  }
+  h3 {
+    font-size: 15px;
+    font-weight: bold;
+    color: #333;
+    margin: 24px 0 10px;
+    font-family: Arial, sans-serif;
+  }
+
+  p { margin-bottom: 14px; }
+
+  /* ── Definition list ── */
+  dl { margin-bottom: 14px; }
+  dt {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #0F6E56;
+    margin-top: 16px;
+    margin-bottom: 4px;
+  }
+  dt.core { color: #534AB7; }
+  dt.actor { color: #993C1D; }
+  dd {
+    margin-left: 24px;
+    font-size: 15px;
+  }
+
+  /* ── Callout boxes ── */
+  .box-info {
+    background: #f7f6ff;
+    border-left: 4px solid #534AB7;
+    padding: 14px 18px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 15px;
+  }
+  .box-goal {
+    background: #e8f7f2;
+    border-left: 4px solid #0F6E56;
+    padding: 14px 18px;
+    margin: 20px 0;
+    border-radius: 0 4px 4px 0;
+    font-size: 15px;
+  }
+
+  /* ── Ordered / unordered lists ── */
+  ol, ul {
+    margin-left: 24px;
+    margin-bottom: 14px;
+  }
+  li { margin-bottom: 6px; font-size: 15px; }
+
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    background: #f0f0f0;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #333;
+  }
+
+  /* ── Diagram ── */
+  .diagram-wrap {
+    margin: 24px 0;
+    overflow-x: auto;
+  }
+
+  /* ── Context diagram (flexbox layout) ── */
+  .ctx-diagram {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    position: relative;
+    border: 1px dashed #ccc;
+    border-radius: 8px;
+    padding: 24px;
+    background: #fafafa;
+  }
+  .ctx-col {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+  }
+  .ctx-col.left  { flex: 0 0 130px; align-items: flex-end; padding-right: 16px; }
+  .ctx-col.mid   { flex: 1; align-items: center; border-left: 1px dashed #ddd; border-right: 1px dashed #ddd; padding: 0 24px; gap: 8px; }
+  .ctx-col.right { flex: 0 0 110px; align-items: flex-start; padding-left: 16px; }
+
+  .ctx-node {
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-align: center;
+    border: 1.5px solid;
+    line-height: 1.3;
+  }
+  .ctx-node strong { display: block; font-size: 13px; }
+  .ctx-node small  { font-size: 11px; font-style: italic; }
+
+  .node-develop  { background: #EEEDFE; border-color: #534AB7; color: #534AB7; }
+  .node-provided { background: #E1F5EE; border-color: #0F6E56; color: #0F6E56; }
+  .node-actor    { background: #FAECE7; border-color: #993C1D; color: #993C1D; }
+  .node-led      { background: #FAEEDA; border-color: #BA7517; color: #BA7517; }
+
+  .ctx-arrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #666;
+    font-size: 11px;
+    font-style: italic;
+  }
+  .ctx-arrow::before { content: '→'; font-style: normal; color: #999; }
+
+  .ctx-boundary-label {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #bbb;
+    font-style: italic;
+    font-family: Arial, sans-serif;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+    border: 2px solid;
+    flex-shrink: 0;
+  }
+
+  /* ── FSM table ── */
+  .fsm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    margin: 20px 0;
+  }
+  .fsm-table th {
+    background: #534AB7;
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: normal;
+    font-size: 13px;
+  }
+  .fsm-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e8e8e8;
+    vertical-align: top;
+  }
+  .fsm-table tr:nth-child(even) td { background: #fafafa; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+  }
+  .badge-idle    { background: #E1F5EE; color: #0F6E56; }
+  .badge-engaged { background: #EEEDFE; color: #534AB7; }
+  .badge-working { background: #FAEEDA; color: #BA7517; }
+  .badge-oos     { background: #FCEBEB; color: #A32D2D; }
+
+  /* ── Test plan table ── */
+  .test-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    margin: 20px 0;
+  }
+  .test-table th {
+    background: #1a1a1a;
+    color: #fff;
+    padding: 9px 12px;
+    text-align: left;
+    font-weight: normal;
+  }
+  .test-table td {
+    padding: 9px 12px;
+    border-bottom: 1px solid #e8e8e8;
+    vertical-align: top;
+  }
+  .test-table tr:nth-child(even) td { background: #fafafa; }
+  .test-id {
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    color: #534AB7;
+  }
+
+  /* ── Architecture levels ── */
+  .arch-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px 0;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+  }
+  .arch-level {
+    padding: 14px 20px;
+    border: 1px solid #ddd;
+  }
+  .arch-level:first-child { border-radius: 8px 8px 0 0; background: #f7f6ff; border-color: #534AB7; }
+  .arch-level:nth-child(2){ background: #fafafa; }
+  .arch-level:last-child  { border-radius: 0 0 8px 8px; background: #fafafa; }
+  .arch-level strong { display: block; margin-bottom: 4px; color: #333; }
+
+  /* ── Footer ── */
+  .doc-footer {
+    margin-top: 64px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+    color: #aaa;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  @media print {
+    body { padding: 20px; }
+    .toc { break-inside: avoid; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="doc-header">
+  <div class="label">Ingegneria dei Sistemi Software M — TemaFinale 2026</div>
+  <h1>CargoService</h1>
+  <div class="subtitle">Sprint 0 — Analisi dei Requisiti</div>
+</header>
+
+<!-- TOC -->
+<nav class="toc">
+  <h2>Indice</h2>
+  <ol>
+    <li><a href="#s1">Glossario dei requisiti</a></li>
+    <li><a href="#s2">Modello delle macro-parti del sistema</a></li>
+    <li><a href="#s3">Core business del sistema</a></li>
+    <li><a href="#s4">Macchina a stati del cargoservice</a></li>
+    <li><a href="#s5">Piano di test funzionali</a></li>
+    <li><a href="#s6">Architettura logica preliminare</a></li>
+    <li><a href="#s7">Goal dello Sprint 1</a></li>
+  </ol>
+</nav>
+
+<div class="box-info">
+  <strong>Obiettivo dello Sprint 0:</strong> formalizzare i termini dei requisiti, identificare le macro-parti del sistema, evidenziare il core business, definire un primo piano di test funzionali e stabilire il goal dello Sprint 1.
+</div>
+
+<!-- ── SEZIONE 1 ── -->
+<section id="s1">
+  <h2><span class="section-num">1</span>Glossario dei requisiti</h2>
+
+  <p>Il primo passo dello Sprint 0 è formalizzare ogni termine del testo dei requisiti in un'entità software precisa.</p>
+
+  <h3>Componenti fisici forniti dal committente</h3>
+  <dl>
+    <dt>Hold</dt>
+    <dd>Area rettangolare piatta della stiva. Contiene quattro slot di storage (<code>slot1</code>–<code>slot4</code>) e uno slot temporaneo (<code>slot5</code>). Lo stato può essere <em>not full</em> (almeno uno slot libero) oppure <em>full</em> (tutti e quattro occupati).</dd>
+
+    <dt>IOPort</dt>
+    <dd>Dispositivo fisico composto da tre sotto-componenti:
+      <ul>
+        <li><strong>pushbutton</strong> — premuto dal customer per inviare una richiesta di carico;</li>
+        <li><strong>display</strong> — mostra lo stato corrente del hold e i messaggi di sistema;</li>
+        <li><strong>sonar</strong> — misura la distanza D e rileva la presenza di un container quando D &lt; D<sub>FREE</sub>/2 per almeno 3 secondi consecutivi.</li>
+      </ul>
+    </dd>
+
+    <dt>D<sub>FREE</sub></dt>
+    <dd>Costante di distanza che rappresenta il valore "area libera". Il sonar è considerato in anomalia se misura D &gt; D<sub>FREE</sub> per almeno 3 secondi consecutivi.</dd>
+
+    <dt>cargorobot</dt>
+    <dd>Robot a guida differenziale (DDR) fornito dall'azienda. Esegue i movimenti fisici: IOPort → <code>slot5</code>, e <code>slot5</code> → <code>slotX</code> riservato.</dd>
+
+    <dt>marker</dt>
+    <dd>Dispositivo fisso nello <code>slot5</code>. Etichetta il container con un barcode e segnala il completamento dell'operazione di marcatura.</dd>
+
+    <dt>Led</dt>
+    <dd>Dispositivo di segnalazione luminosa. Deve lampeggiare durante tutta la fase <em>Engaged</em>.</dd>
+  </dl>
+
+  <h3>Componente software da sviluppare</h3>
+  <dl>
+    <dt class="core">cargoservice</dt>
+    <dd>Il servizio software centrale da realizzare. Orchestra tutti i componenti sopra descritti, implementa la logica di stato e gestisce il protocollo di carico.</dd>
+  </dl>
+
+  <h3>Attori esterni</h3>
+  <dl>
+    <dt class="actor">customer</dt>
+    <dd>Persona che interagisce fisicamente con l'IOPort: preme il pushbutton per richiedere il carico e porta il container nell'area sonar entro il timeout.</dd>
+  </dl>
+</section>
+
+<!-- ── SEZIONE 2 ── -->
+<section id="s2">
+  <h2><span class="section-num">2</span>Modello delle macro-parti del sistema</h2>
+
+  <p>Il diagramma seguente mostra il <em>context diagram</em> del sistema, distinguendo tra componenti <strong>forniti dal committente</strong>, il componente <strong>da sviluppare</strong> e l'<strong>attore esterno</strong>.</p>
+
+  <div class="diagram-wrap">
+    <div class="ctx-diagram">
+      <span class="ctx-boundary-label">«system boundary»</span>
+
+      <!-- colonna sinistra: customer -->
+      <div class="ctx-col left">
+        <div class="ctx-node node-actor">
+          <strong>customer</strong>
+          <small>attore esterno</small>
+        </div>
+      </div>
+
+      <!-- colonna centrale: componenti interni -->
+      <div class="ctx-col mid">
+        <div class="ctx-node node-develop" style="margin-bottom:4px;">
+          <strong>cargoservice</strong>
+          <small>«da sviluppare — core»</small>
+        </div>
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+          <div class="ctx-node node-provided">
+            <strong>cargorobot</strong>
+            <small>«fornito — DDR»</small>
+          </div>
+          <div class="ctx-node node-provided">
+            <strong>IOPort</strong>
+            <small>«fornito — pushbutton + display + sonar»</small>
+          </div>
+          <div class="ctx-node node-provided">
+            <strong>marker</strong>
+            <small>«fornito — barcode device»</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- colonna destra: Led -->
+      <div class="ctx-col right">
+        <div class="ctx-node node-led">
+          <strong>Led</strong>
+          <small>«fornito»</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#EEEDFE; border-color:#534AB7;"></div>
+        <span style="color:#534AB7;">Da sviluppare</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#E1F5EE; border-color:#0F6E56;"></div>
+        <span style="color:#0F6E56;">Fornito dal committente</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#FAECE7; border-color:#993C1D;"></div>
+        <span style="color:#993C1D;">Attore esterno</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#FAEEDA; border-color:#BA7517;"></div>
+        <span style="color:#BA7517;">Fornito (periferica)</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Natura software dei componenti</h3>
+  <p>La comunicazione tra i componenti avviene tramite <strong>messaggi asincroni</strong>, coerentemente con il modello <code>qak</code> (actor model). Ogni componente è un'entità indipendente con la propria coda di messaggi, senza condivisione di stato — ideale per sistemi con hardware eterogeneo e temporizzazioni critiche.</p>
+</section>
+
+<!-- ── SEZIONE 3 ── -->
+<section id="s3">
+  <h2><span class="section-num">3</span>Core business del sistema</h2>
+
+  <p>Il core business è la <strong>gestione sicura e ordinata del carico di container nella stiva</strong>. Il flusso principale è:</p>
+
+  <ol>
+    <li>Il customer preme il pushbutton sull'IOPort.</li>
+    <li>Il <code>cargoservice</code> verifica le precondizioni: IOPort libero, hold non pieno, sistema non in anomalia.</li>
+    <li>Se le precondizioni sono soddisfatte, riserva uno slot libero e risponde con il suo nome; il Led inizia a lampeggiare (<em>stato Engaged</em>).</li>
+    <li>Il customer porta il container nell'area sonar entro 30 secondi.</li>
+    <li>Il sonar rileva il container (D &lt; D<sub>FREE</sub>/2 per 3s); il <code>cargorobot</code> sposta il container da IOPort a <code>slot5</code> (<em>stato Working</em>).</li>
+    <li>Il <code>marker</code> etichetta il container e segnala il completamento.</li>
+    <li>Il <code>cargorobot</code> sposta il container da <code>slot5</code> allo slot riservato.</li>
+    <li>Il sistema torna in <em>stato Idle</em>; il Led si spegne.</li>
+  </ol>
+
+  <h3>Risposte del servizio</h3>
+  <ul>
+    <li><code>retrylater</code> — se IOPort è occupato o il sistema è <em>Out of Service</em>.</li>
+    <li><code>rejected</code> — se il hold è già pieno (tutti e 4 gli slot occupati).</li>
+    <li><code>&lt;nome_slot&gt;</code> — se la richiesta è accettata (es. <code>slot2</code>).</li>
+  </ul>
+</section>
+
+<!-- ── SEZIONE 4 ── -->
+<section id="s4">
+  <h2><span class="section-num">4</span>Macchina a stati del cargoservice</h2>
+
+  <p>La tabella descrive gli stati del sistema e le rispettive transizioni.</p>
+
+  <table class="fsm-table">
+    <thead>
+      <tr>
+        <th>Stato</th>
+        <th>Descrizione</th>
+        <th>Transizioni in uscita</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-idle">Idle</span></td>
+        <td>Stato iniziale. Hold libero, Led spento. Accetta richieste dal pushbutton.</td>
+        <td>
+          → <span class="badge badge-engaged">Engaged</span> se pushbutton premuto e hold non pieno e IOPort libero<br>
+          → <span class="badge badge-oos">OutOfService</span> se sonar misura D &gt; D<sub>FREE</sub> per ≥ 3s
+        </td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-engaged">Engaged</span></td>
+        <td>Slot riservato. Led lampeggia. Attende che il customer porti il container entro 30s.</td>
+        <td>
+          → <span class="badge badge-working">Working</span> se sonar rileva D &lt; D<sub>FREE</sub>/2 per 3s entro 30s<br>
+          → <span class="badge badge-idle">Idle</span> se timeout scaduto (slot ri-liberato, Led spento)
+        </td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-working">Working</span></td>
+        <td>Il <code>cargorobot</code> è in movimento. Il sistema non accetta nuove richieste.</td>
+        <td>
+          → <span class="badge badge-idle">Idle</span> quando il robot ha completato il deposito nello slot riservato
+        </td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-oos">OutOfService</span></td>
+        <td>Anomalia sonar rilevata. Display mostra "Out of service". Nessuna richiesta accettata (risposta: <code>retrylater</code>).</td>
+        <td>
+          → <span class="badge badge-idle">Idle</span> quando il sonar torna a valori normali
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── SEZIONE 5 ── -->
+<section id="s5">
+  <h2><span class="section-num">5</span>Piano di test funzionali</h2>
+
+  <p>Primo insieme di test funzionali definiti in cooperazione con il committente.</p>
+
+  <table class="test-table">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Scenario</th>
+        <th>Precondizione</th>
+        <th>Azione</th>
+        <th>Risultato atteso</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="test-id">T1</td>
+        <td>Flusso completo</td>
+        <td>≥1 slot libero, IOPort libero, In Service</td>
+        <td>Pushbutton + container portato entro 30s</td>
+        <td>Display mostra slot riservato, Led lampeggia, robot completa il carico, Led si spegne</td>
+      </tr>
+      <tr>
+        <td class="test-id">T2</td>
+        <td>Hold pieno</td>
+        <td>Tutti e 4 gli slot occupati</td>
+        <td>Customer preme pushbutton</td>
+        <td>Risposta <code>rejected</code>, nessun Led, nessun movimento robot</td>
+      </tr>
+      <tr>
+        <td class="test-id">T3</td>
+        <td>IOPort occupato</td>
+        <td>Container già presente nell'area sonar</td>
+        <td>Customer preme pushbutton</td>
+        <td>Risposta <code>retrylater</code></td>
+      </tr>
+      <tr>
+        <td class="test-id">T4</td>
+        <td>Timeout scaduto</td>
+        <td>Sistema in stato <em>Engaged</em></td>
+        <td>Nessun container portato entro 30s</td>
+        <td>Sistema torna <em>Idle</em>, Led spento, slot ri-liberato</td>
+      </tr>
+      <tr>
+        <td class="test-id">T5</td>
+        <td>Sonar anomalo</td>
+        <td>Sistema In Service</td>
+        <td>Sonar misura D &gt; D<sub>FREE</sub> per ≥ 3s</td>
+        <td>Display mostra "Out of service", sistema non accetta richieste</td>
+      </tr>
+      <tr>
+        <td class="test-id">T6</td>
+        <td>Ripristino da OutOfService</td>
+        <td>Sistema in <em>OutOfService</em></td>
+        <td>Sonar torna a valori normali</td>
+        <td>Sistema torna <em>Idle</em>, display mostra stato corrente del hold</td>
+      </tr>
+      <tr>
+        <td class="test-id">T7</td>
+        <td>Richiesta durante OutOfService</td>
+        <td>Sistema in <em>OutOfService</em></td>
+        <td>Customer preme pushbutton</td>
+        <td>Risposta <code>retrylater</code></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── SEZIONE 6 ── -->
+<section id="s6">
+  <h2><span class="section-num">6</span>Architettura logica preliminare</h2>
+
+  <p>La struttura logica si articola in tre livelli sovrapposti:</p>
+
+  <div class="arch-levels">
+    <div class="arch-level">
+      <strong>Livello di interfaccia</strong>
+      Gestisce l'interazione con IOPort (lettura pushbutton, scrittura display, lettura sonar) e il Led. Espone eventi al livello superiore tramite messaggi.
+    </div>
+    <div class="arch-level">
+      <strong>Livello di orchestrazione — <code>cargoservice</code></strong>
+      Contiene la FSM (sezione 4), la gestione del timeout, la selezione dello slot libero e la coordinazione del marker.
+    </div>
+    <div class="arch-level">
+      <strong>Livello di attuazione</strong>
+      Wrappa il <code>cargorobot</code> con comandi di alto livello: <code>moveToSlot5()</code>, <code>moveToSlot(n)</code>.
+    </div>
+  </div>
+
+  <h3>Motivazione dell'uso di qak</h3>
+  <p>Il linguaggio <code>qak</code> è motivato dalla natura intrinsecamente <strong>concorrente e reattiva</strong> del sistema: il <code>cargoservice</code> deve rispondere ad eventi esterni (pushbutton, sonar) mentre monitora timeout e gestisce il robot. Il modello ad attori di <code>qak</code> supera il concetto di oggetto tradizionale perché ogni componente è un'entità indipendente che reagisce a messaggi, senza condivisione di stato.</p>
+</section>
+
+<!-- ── SEZIONE 7 ── -->
+<section id="s7">
+  <h2><span class="section-num">7</span>Goal dello Sprint 1</h2>
+
+  <div class="box-goal">
+    <strong>Sprint 1 Goal:</strong> implementare il nucleo funzionale del <code>cargoservice</code> con robot simulato (mock), coprendo i casi T1–T4.
+  </div>
+
+  <p>Lo Sprint 1 si concentra su:</p>
+  <ul>
+    <li>Implementazione della FSM di <code>cargoservice</code> (<em>Idle</em> → <em>Engaged</em> → <em>Working</em> → <em>Idle</em>).</li>
+    <li>Gestione di IOPort: lettura pushbutton, scrittura display, sonar simulato.</li>
+    <li>Timeout di 30 secondi con disingaggio automatico.</li>
+    <li>Blink del Led durante la fase <em>Engaged</em>.</li>
+    <li>Test dei casi <strong>T1–T4</strong> con <code>cargorobot</code> mock.</li>
+  </ul>
+
+  <p>I casi <strong>T5–T7</strong> (gestione <em>OutOfService</em>) e l'integrazione fisica con il <code>cargorobot</code> reale sono deferiti allo <strong>Sprint 2</strong>.</p>
+</section>
+
+<!-- FOOTER -->
+<footer class="doc-footer">
+  <span>CargoService — Sprint 0</span>
+  <span>Ingegneria dei Sistemi Software M — TF2026</span>
+</footer>
+
+</body>
+</html>
