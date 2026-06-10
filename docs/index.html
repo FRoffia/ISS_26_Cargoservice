@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="mystyle.css">
+    <meta charset="UTF-8">
+    <title>Sprint 0</title>
+</head>
+<body>
+
+<div id="top">
+    <h1>Sprint 0: Analisi dei Requisiti</h1>
+</div>
+
+<div class="body">
+
+<h2>Contenuti</h2>
+<p>
+<bc>Sprint 0</bc>: analisi dei requisiti, descrizione e modellazione dei componenti,
+piano di test e goal per Sprint 1.
+</p>
+
+<h2>Requisiti</h2>
+
+<div class="req">
+A <i>Maritime Cargo shipping company</i> (fron now on, simply <b>company</b>) intends to automate the operations of load of
+<b>containers</b> in the ship's cargo hold (or simply <b>hold</b>). To this end, the company plans to employ a <i>Differential Drive
+Robot</i> (from now, called <b>cargorobot</b>).
+The <i>hold</i> is a rectangular, flat area with an Input/Output port (<b>IOPort</b>). The area provides <i>4 slots</i> to store the
+containers and a slot named <b>slot5</b>.<br>
+In the picture below:
+<ul>
+    <li>The <b>slots1-4</b> depict the hold areas reserved to store one container each</li>
+    <li>The <b>slot5</b> depicts an area, where the cargorobot must temporarily store a container, before to place it in one of
+        the slots1-4. During temporary storage, a 'marker' device labels the container with an identification barcode and
+        signals when this marking activity is completed</li>
+    <li>The <b>IOPort</b> is a device with a <b>pushbutton</b> and a <b>display</b>. The pushbutton is pressed by the customer in order
+        to to send a request to load a container on the cargo. The display is used to show the answer to the request and
+        to show the current state of the hold</li>
+    <li>The <b>sensor</b> associated to the IOPort is a device (a sonar) used to detect the presence of a container, when it
+        measures a distance D, such that D < DFREE/2, during a reasonable time (e.g. 3 secs)</li>
+</ul>
+</div>
+<img src="img/requisiti.png" width="53%">
+
+<h2>Analisi del Problema</h2>
+
+<h3>Hold</h3>
+<p>
+La <bc>hold</bc> è lo spazio di lavoro del cargorobot. Usiamo un sistema di coordinate
+basato sulla dimensione del robot: definiamolo come cerchio con raggio <b>r</b>, la stanza di base
+<b>B</b> e altezza <b>H</b>.
+</p>
+<pre>
+int hold[ ][ ]
+int width  = B/2r        // width*2r  &lt; B &lt; width*(2r+1)
+int height = H/2r        // height*2r &lt; H &lt; height*(2r+1)
+</pre>
+<p>
+La posizione <bc>HOME</bc> è definita come <tt>hold[0][0]</tt>.
+Il committente fornisce la mappa con i seguenti punti di interesse:
+</p>
+<pre>
+hold[1][2] = slot1
+hold[1][3] = slot2
+hold[3][2] = slot3
+hold[3][3] = slot4
+hold[2][4] = slot5           // slot temporaneo per marcatura
+hold[0][5] = IOPORT     // posizione della IOPort nella griglia
+</pre>
+<img src="img/hold.png" width="25%">
+
+<div class="remark">
+<b>Natura software:</b> la hold è modellata come <em>POJO</em>, in quanto entità passiva che contiene altri POJO.
+La logica di orchestrazione risiede nel <bc>cargoservice</bc>.
+</div>
+
+<h3>Slot</h3>
+<p>
+Gli slot sono celle della hold che contengono al massimo 1 container. Distinguiamo due tipologie:
+</p>
+<ul>
+    <li><bc>slot1-4</bc>: slot <em>permanenti</em>. Destinazione finale del container.</li>
+    <li><bc>slot5</bc>: slot <em>transitorio</em>. Il container vi sosta per la marcatura (barcode).
+        Un dispositivo "marker" applica l'etichetta e segnala il completamento al sistema.</li>
+</ul>
+<p>Modelliamo gli slot come <em>POJO</em>:</p>
+<pre>
+bool occupato       // false = libero, true = container presente
+</pre>
+<div class="remark">
+<b>Natura software:</b> gli slot sono modellati come <em>POJO</em> in quanto entità passive.
+</div>
+
+<h3>IOPort</h3>
+<p>
+La <bc>IOPort</bc> è il punto di ingresso/uscita dei container nella hold.
+</p>
+<p>Logicamente, la IOPort è composta da:</p>
+<ul>
+    <li><bc>pushbutton</bc>: pulsante fisico. Premuto dal cliente, invia una
+        <em>richiesta di carico</em> al cargoservice.
+    <li><bc>display</bc>: mostra risposta e stato della hold. Nel sistema corrisponde
+        alla <em>webGUI</em> (componente fornito).
+</ul>
+<div class="remark">
+<b>Natura software:</b> dal punto di vista fisico, è un <em>POJO</em> collocato nella griglia alla posizione hold[0][5].<br>
+Al livello logico invece, <bc>pushbutton</bc> e <bc>display</bc> sono <em>ATTORI</em>
+</div>
+
+<h3>Sonar</h3>
+<p>
+Il <bc>sonar</bc> è un componente <em>attivo</em> che rileva la presenza o l'assenza di un
+container presso la IOPort, misurando una distanza D.<br>
+Data una distanza DFREE, valgono le seguenti proprietà:
+</p>
+<pre>
+D < DFREE/2                           = container presente, IOPort occupata
+DFREE/2 <= D <= DFREE           = misurazione valida, IOPort libera
+D > DFREE per più di 3 sec     = sistema entra in Out-of-Service
+</pre>
+<p>Emette l'evento:</p>
+<pre>
+sonardata : sonar(DISTANCE)    // evento periodico con distanza misurata
+</pre>
+<div class="remark">
+<b>Natura software</b> modellato come <em>ATTORE</em> in quanto componente <em>attivo</em>.
+</div>
+
+<h3>Led</h3>
+<p>
+Il <bc>led</bc> è un dispositivo di notifica visiva. I suoi comportamenti:
+</p>
+<ul>
+    <li><tt>BLINK</tt>: stato <em>ENGAGED</em></li>
+    <li><tt>OFF</tt>: stati <em>IDLE / DISENGAGED</em></li>
+</ul>
+<div class="remark">
+<b>Natura software</b> modellato come <em>ATTORE</em> in quanto componente <em>attivo</em> che risiede su un nodo remoto, ad esempio Raspberry Pi.
+</div>
+
+<h2>Il core business</h2>
+
+<p>
+Il <bc>cargoservice</bc> è il macro-componente che implementa il core-business e
+Orchestra tutti gli altri componenti, modellato quindi come <em>ATTORE</em>.<br>
+La logica di business principale è composta da:
+    <ul>
+        <li>dove e quando spostare il cargorobot </li>
+        <li>accettare o rifiutare una richiesta di carico </li>
+        <li>quale slot libero associare alla richiesta che si sta servendo</li>
+        <li>mandare out of order il sistema quando si accorge di un malfunzionamento del sonar</li>
+    </ul>
+</p>
+
+<h2>Architettura Logica del Sistema</h2>
+<img src="img/arch0.png" width="40%">
+
+<h2>Componenti da Sviluppare</h2>
+<h3>Da sviluppare</h3>
+<ul>
+    <li><bc>cargoservice</bc>: Sprint 1 (core business, gestione stati)</li>
+    <li><bc>cargorobot</bc>: Sprint 1 (astrazione movimentazione cargorobot)</li> ??? WRAPPER PER ROBOTSMART O NO !!!!!!!!!!!
+    <li><bc>sonar</bc> : Sprint 2 (rilevazione container, Out-of-Service)</li>
+    <li><bc>hold</bc> : Sprint 2 (gestione mappa e slot)</li>
+    <li><bc>pushbutton</bc> : Sprint 3 (input virtuale/fisico)</li>
+    <li><bc>display</bc> : Sprint 3 (output verso utente / webGUI)</li>
+    <li><bc>led</bc> : Sprint 3 (notifica visiva virtuale/fisica)</li>
+</ul>
+
+<h3>Forniti dal committente</h3>
+<ul>
+    <li>
+        <bc>robotsmart26</bc> (sistema QAK)
+    </li>
+    <li>
+        <bc>WEnv</bc> (VirtualRobot26, Docker)
+    </li>
+</ul>
+
+
+<h2>Test Plans</h2>
+
+
+<p>
+I test sono scritti in Java (JUnit). I POJO di supporto (hold, slot, etc...)
+sono fittizzi e servono ad avere dei test iniziali, per poi concretizzarli con gli oggetti reali.<br>
+
+Assumiamo che prima di ogni test il sistema sia avviato e il <bc>cargoservice</bc>
+sia raggiungibile tramite <tt>conn</tt> (connessione TCP alla porta del contesto QAK).
+</p>
+
+<h4>T01: Richiesta accettata</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in IDLE, almeno uno slot1-4 libero, IOPort libera.<br/>
+<b>Atteso:</b> cargoservice risponde con il nome dello slot riservato; sistema passa a ENGAGED.
+</div>
+<pre>
+@Test
+public void testTF01_LoadRequestAccepted() throws Exception {
+    // Simula pressione del pushbutton: invia richiesta di carico
+    String request = CommUtils.buildRequest("tester",
+            "load_request", "load_request(client1)",
+            "cargoservice").toString();
+
+    String response = conn.request(request);
+    System.out.println("TF01 response: " + response);
+
+    // Il cargoservice deve rispondere con il nome dello slot riservato
+    assertTrue("TF01: richiesta accettata con slot assegnato",
+            response.contains("load_accepted"));
+}
+</pre>
+
+<h4>T02: Container depositato in tempo</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in ENGAGED (TF01 già eseguito).<br/>
+<b>Atteso:</b> il sonar rileva il container, il cargorobot esegue il ciclo completo, il sistema torna a IDLE.
+</div>
+<pre>
+@Test
+public void testTF02_ContainerDepositedInTime() throws Exception {
+    // Prima: ottieni lo stato ENGAGED
+    String req = CommUtils.buildRequest("tester",
+            "load_request", "load_request(client1)", "cargoservice").toString();
+    conn.request(req);
+
+    // Simula: il sonar rileva il container (stub emette sonardata con D &lt; DFREE/2)
+    CommUtils.forwardOnInterconn(conn, CommUtils.buildDispatch("tester",
+            "sonar_stub_trigger", "sonar_stub_trigger(near)", "sonarstub").toString());
+    CommUtils.delay(5000); // attende il ciclo di movimentazione completo
+
+    // Verifica che il sistema sia tornato a IDLE (slot aggiornato)
+    String statusReq = CommUtils.buildRequest("tester",
+            "get_hold_state", "get_hold_state(X)", "cargoservice").toString();
+    String status = conn.request(statusReq);
+    System.out.println("TF02 hold state: " + status);
+
+    assertTrue("TF02: sistema tornato a IDLE, slot occupato",
+            status.contains("slot_occupied"));
+}
+</pre>
+
+<h4>T03: Timeout deposito (DISENGAGED)</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in ENGAGED.<br/>
+<b>Atteso:</b> allo scadere dei 30 sec senza rilevazione, il sistema torna a IDLE con lo slot liberato.
+</div>
+<pre>
+@Test
+public void testTF03_TimeoutDisengaged() throws Exception {
+    // Ottieni stato ENGAGED
+    String req = CommUtils.buildRequest("tester",
+            "load_request", "load_request(client1)", "cargoservice").toString();
+    String resp = conn.request(req);
+    assertTrue("TF03 setup: richiesta accettata", resp.contains("load_accepted"));
+
+    // Attende il timeout (configurare a 5 sec in test mode)
+    CommUtils.delay(6000);
+
+    // Lo slot deve essere stato liberato: una seconda richiesta deve essere accettata
+    String req2 = CommUtils.buildRequest("tester",
+            "load_request", "load_request(client2)", "cargoservice").toString();
+    String resp2 = conn.request(req2);
+    System.out.println("TF03 second request: " + resp2);
+
+    assertTrue("TF03: sistema tornato a IDLE dopo timeout (slot liberato)",
+            resp2.contains("load_accepted"));
+}
+</pre>
+
+<h4>T04: Hold piena</h4>
+<div class="remark">
+<b>Precondizione:</b> tutti gli slot1-4 occupati.<br/>
+<b>Atteso:</b> cargoservice rifiuta la richiesta.
+</div>
+<pre>
+@Test
+public void testTF04_HoldFull() throws Exception {
+    // Setup: forza tutti gli slot occupati tramite dispatch diretto
+    for (int i = 1; i <= 4; i++) {
+        CommUtils.forwardOnInterconn(conn, CommUtils.buildDispatch("tester",
+                "set_slot_occupied", "set_slot_occupied(" + i + ")", "cargoservice").toString());
+    }
+    CommUtils.delay(200);
+
+    String request = CommUtils.buildRequest("tester",
+            "load_request", "load_request(client1)", "cargoservice").toString();
+    String response = conn.request(request);
+    System.out.println("TF04 response: " + response);
+
+    assertTrue("TF04: richiesta rifiutata perché hold piena",
+            response.contains("load_rejected"));
+}
+</pre>
+
+<h4>T05: IOPort occupata</h4>
+<div class="remark">
+<b>Precondizione:</b> sonar misura D < DFREE/2 (container già in IOPort).<br/>
+<b>Atteso:</b> cargoservice risponde <tt>retrylater</tt>.
+</div>
+<pre>
+@Test
+public void testTF05_IOPortOccupied() throws Exception {
+    // Simula IOPort occupata: stub sonar emette distanza vicina
+    CommUtils.forwardOnInterconn(conn, CommUtils.buildDispatch("tester",
+            "sonar_stub_trigger", "sonar_stub_trigger(near)", "sonarstub").toString());
+    CommUtils.delay(500);
+
+    String request = CommUtils.buildRequest("tester",
+            "load_request", "load_request(client1)", "cargoservice").toString();
+    String response = conn.request(request);
+    System.out.println("TF05 response: " + response);
+
+    assertTrue("TF05: risposta retrylater perché IOPort occupata",
+            response.contains("retrylater"));
+}
+</pre>
+
+<h2>Goal Sprint 1</h2>
+
+<p>
+Lo <bc>Sprint 1</bc> ha come obiettivo la realizzazione del nucleo operativo del sistema,
+senza dipendenze da hardware fisico (sonar reale, pushbutton fisico, led fisico).
+</p>
+
+<h3>Sottoinsieme di Requisiti (goal Sprint 1)</h3>
+<ul>
+    <li>Implementare <bc>cargoservice</bc> con stati: IDLE, ENGAGED, DISENGAGED (OUT_OF_SERVICE rimandato a Sprint 2, con sonar reale)</li>
+    <li>Implementare <bc>robotservice</bc> come wrapper per <tt>robotsmart26</tt></li>
+    <li>Gestire la riserva degli slot e il ciclo di movimentazione</li>
+    <li>Gestire il timeout di 30 secondi per il deposito</li>
+    <li>Il sonar è simulato (stub programmabile)</li>
+    <li>Hold e slot: strutture dati in-memory (POJO)</li>
+</ul>
+
+<h3>Test da superare in Sprint 1</h3>
+<ul>
+    <li><bc>TF01</bc>: Richiesta accettata</li>
+    <li><bc>TF02</bc>: Container depositato in tempo</li>
+    <li><bc>TF03</bc>: Timeout / DISENGAGED</li>
+    <li><bc>TF04</bc>: Hold piena</li>
+    <li><bc>TF05</bc>: IOPort occupata</li>
+</ul>
+
+<h3>Componenti prodotti in Sprint 1</h3>
+<ul>
+    <li><tt>cargoservice.qak</tt>: attore QAK, core business</li>
+    <li><tt>robotservice.qak</tt>: attore QAK, wrapper robotsmart26</li>
+    <li><tt>CargoServiceTest.java</tt>: test JUnit (TF01-TF05)</li>
+</ul>
+
+<br/><br/>
+</div>
+
+<div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px;">
+    By Andrea Gazzola and Francesco Roffia <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">
+    GIT repo: https://github.com/FRoffia/ISS_26_Cargoservice</a>
+</div>
+
+</body>
+</html>
