@@ -1,0 +1,202 @@
+System sprint0
+
+Request  load_request  : load_request(X)
+Reply    load_accepted : load_accepted(SLOT)  for load_request
+Reply    load_rejected : load_rejected(X)     for load_request
+Reply    retrylater    : retrylater(X)        for load_request
+
+
+Request  check_container   : check_container(X)
+Reply    container_present : container_present(X)  for check_container
+Reply    container_absent  : container_absent(X)   for check_container
+
+
+Dispatch containerIn   : containerIn(X)
+Dispatch containerOut  : containerOut(X)
+Dispatch sensorError   : sensorError(X)
+Dispatch sensorReady   : sensorReady(X) 
+
+//Dispatch sensordata    : sensordata(D)
+
+//Dispatch setDisplay    : setDisplay(MSG)   //testo da mostrare sul display
+//Dispatch setLed        : setLed(STATE)     //stato led: on | off | blink
+
+Request  do_move       : do_move(DEST)
+Reply    move_done     : move_done(ARG)       for do_move
+Reply    move_failed   : move_failed(CAUSE)   for do_move
+
+Request  buildPlan    : buildPlan(PX,PY,TX,TY)
+Reply buildPlanDone   : buildPlanDone( PLAN ) for buildPlan
+
+Request  doplan       : doplan( PLAN, STEPTIME )
+Reply    doplandone   : doplandone( ARG )          for doplan
+Reply    doplanfailed : doplanfailed( PLANTODO )   for doplan
+
+
+Context ctx_cargoservice ip [host="localhost" port=8000]
+Context ctxrobotsmart    ip [host="127.0.0.1" port=8020]
+//Context ctxsensor        ip [host="localhost" port=8030]
+//Context ctx_io           ip [host="localhost" port=8500]
+
+
+ExternalQActor robotsmart context ctxrobotsmart
+//ExternalQActor sensorservice context ctxsensor
+//ExternalQActor ioservice  context ctx_io
+
+QActor cargoservice context ctx_cargoservice {
+
+    State s0 initial {
+        // TODO: inizializzare hold
+    }
+    Goto disengaged
+
+    State disengaged {
+        //forward ioservice -m setDisplay : setDisplay("Service Working")
+        //forward ioservice -m setLed     : setLed(off)
+    }
+    Transition t0
+        whenMsg     sensorError   -> outOfService
+        whenRequest load_request -> handleLoadRequest
+
+    State handleLoadRequest {
+        //controllo: hold piena? -> load_rejected
+        // 			 outOfService? -> retrylater
+        //			 engaged?      -> retrylater
+    }
+    Goto checkIoport
+
+    State checkIoport {
+        //il container potrebbe essere già all'IOPort
+        //request sensorservice -m check_container : check_container(x)
+    }
+    Transition t0
+        whenReply container_present -> startLoading   //container già depositato
+        whenReply container_absent  -> waitContainer        //attesa asincrona, max 30s
+
+    State waitContainer {
+    	
+        //avvia timer 30s - timeout - libera slot, retrylater, torna disengaged
+    }
+    Transition t0
+        whenMsg containerIn  -> startLoading
+        //TODO: transizione timeout
+
+    State startLoading {
+    	//muovo robot a ioport
+        request cargorobot -m do_move : do_move(ioport)
+    }
+    Transition t0
+    	whenReply move_done   -> moveToSlot
+    	whenReply move_failed -> handleMoveFailed
+        
+
+    State moveToSlot {
+    	
+        request cargorobot -m do_move : do_move($SLOT)
+    }
+    Transition t0
+    	whenReply move_done   -> loadComplete
+    	whenReply move_failed -> handleMoveFailed
+
+
+    State loadComplete {
+	 
+	 
+    }
+    Goto disengaged
+
+    State handleMoveFailed {
+		
+    }
+    Goto disengaged
+
+    State outOfService {
+    	//forward ioservice -m setDisplay : setDisplay("Out of Service")
+    }
+    Transition t0
+        whenMsg    sensorReady   -> recoveryFromOOS
+        whenRequest load_request -> rejectOOS
+
+    State rejectOOS {
+        replyTo load_request with retrylater : retrylater(out_of_service)
+    }
+    Goto outOfService
+
+    State recoveryFromOOS {
+        //forward ioservice -m setDisplay : setDisplay("Service Working")
+    }
+    Goto disengaged
+}
+
+
+QActor cargorobot context ctx_cargoservice {
+
+    //Mappa coordinate (da requisiti):
+    //HOME    = (0,0)
+    //SLOT1   = (1,2)
+    //SLOT2   = (1,3)
+    //SLOT3   = (3,2)
+    //SLOT4   = (3,3)
+    //SLOT5   = (2,4)
+    //IOPORT  = (0,5)
+
+    [# val StepTime = 345
+       var CurX     = 0
+       var CurY     = 0
+       var TargetX  = 0
+       var TargetY  = 0
+       var Plan     = ""
+       val coordMap = mapOf(
+           "home"   to Pair(0,0),
+           "slot1"  to Pair(1,2),
+           "slot2"  to Pair(1,3),
+           "slot3"  to Pair(3,2),
+           "slot4"  to Pair(3,3),
+           "slot5"  to Pair(2,4),
+           "ioport" to Pair(0,5)
+       )
+    #]
+
+    State s0 initial {
+    	
+    }
+    Goto work
+
+    State work {
+    	
+    }
+    Transition t0
+        whenRequest do_move -> handleDoMove
+
+    State handleDoMove {
+        onMsg( do_move : do_move(DEST) ) {
+            //setup coordinate correnti e target
+        }
+        request robotsmart -m buildPlan : buildPlan($CurX, $CurY, $TargetX, $TargetY)
+    }
+    Transition t0
+        whenReply buildPlanDone -> executePlan
+
+    State executePlan {
+        onMsg( buildPlanDone : buildPlanDone(PLAN) ) {
+            [# Plan = payloadArg(0) #]
+            request robotsmart -m doplan : doplan($Plan, $StepTime)
+        }
+    }
+    Transition t0
+        whenReply doplandone   -> moveOk
+        whenReply doplanfailed -> moveFailed
+
+    State moveOk {
+        printCurrentMessage color green
+        [# CurX = TargetX; CurY = TargetY #]
+        replyTo do_move with move_done : move_done(ok)
+    }
+    Goto work
+
+    State moveFailed {
+        printCurrentMessage color red
+        replyTo do_move with move_failed : move_failed(obstacle)
+    }
+    Goto work
+}
