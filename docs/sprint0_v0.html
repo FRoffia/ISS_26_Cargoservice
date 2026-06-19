@@ -8,7 +8,7 @@
 <body>
 
 <div id="top">
-    <h1>Sprint 0_v1: Analisi dei Requisiti</h1>
+    <h1>Sprint 0_v0: Analisi dei Requisiti</h1>
 </div>
 
 <div class="body">
@@ -37,135 +37,59 @@ In the picture below:
         to to send a request to load a container on the cargo. The display is used to show the answer to the request and
         to show the current state of the hold</li>
     <li>The <b>sensor</b> associated to the IOPort is a device (a sonar) used to detect the presence of a container, when it
-        measures a distance D, such that D < =DFREE/2, during a reasonable time (e.g. 3 secs)</li>
+        measures a distance D, such that D < DFREE/2, during a reasonable time (e.g. 3 secs)</li>
 </ul>
 </div>
 <img src="img/requisiti.png" width="53%">
-<div class="req">
+
+<h2>Analisi del Problema</h2>
+
+<h3>Hold</h3>
 <p>
-  The company asks us to build service named <strong>cargoservice</strong> that should work as follows.
-</p>
-
-<p>
-  The <i>cargoservice</i> is able to receive a <strong>request to load</strong> a container sent by some customer by using the <i>pushbutton</i> of the <i>IOPort</i>.
-</p>
-
-<ul>
-  <li>
-    It sends the answer <code>retrylater</code>, if the <strong>IOPort</strong> is currently occupied by a container or if the system is <i>Out of service</i>
-  </li>
-
-  <li>
-    It rejects the request when the hold is already full, i.e. the <code>slots1-4</code> are already occupied.
-  </li>
-
-  <li>
-    Otherwise, it considers the system as <strong>engaged</strong>, detects a free slot and returns as answer the name of such a reserved slot.
-    <br>
-    While engaged, the system must blink a Led.
-  </li>
-</ul>
-
-<p>
-  When the <i>request to load</i> is accepted, the customer must move the container in the <i>sensor</i> area within prefixed amount of time (e.g. 30 secs),
-  otherwise the systems becomes <strong>disengaged</strong>.
-  Then, the <i>cargoservice</i> uses the <i>cargorobot</i> to move the container from the <i>IOPort</i> to the <i>slot5</i> (for marking the container) and then to the reserved slot.
-</p>
-
-<p>
-  The service must also show on the <i>display</i> on the <i>IOPort</i>:
-</p>
-
-<ul>
-  <li>the current state of the <i>hold</i></li>
-  <li>the message <strong>'Service working'</strong>, when it is all is going well</li>
-  <li>the message <strong>'Out of service'</strong> if the <i>sonar sensor</i> measures a distance D &gt; =DFREE for at least 3 secs (perhaps a failure of the sonar).</li>
-</ul>
-</div>
-
-<h2>Premessa: utilizzo di QAK</h2>
-<p>
-L'analisi dei requisiti di questo sprint iniziale si fonda, oltre che sull'utilizzo di classi java, anche sul concetto di attore e sull'utilizzo del metamodello QAK.<br><br>
-
-Adottare il concetto di attore nella fase di analisi ci ha consentito di meglio rappresentare le entità attive del sistema, 
-quelle capaci di interagire proattivamente con altre attraverso lo scambio di messaggi. Un approccio basato esclusivamente su POJO avrebbe introdotto un
-  eccessivo abstraction gap tra le entità reali da modellare e gli strumenti di rappresentazione 
- disponibili.<br><br>
-
-Tra i concetti offerti da QAK, i più rilevanti ai fini del progetto sono secondo noi
-le diverse tipologie di messaggi scambiabili tra gli attori del sistema, ciascuno con la propria sintassi e semantica.
-<br>
-</p>
-<h2>Analisi dei Requisiti</h2>
-
-<h3>Hold e slots</h3>
-<p>
-La <bc>hold</bc> è lo spazio di lavoro del cargorobot. Si tratta di uno spazio rettangolare di altezza <b>H</b> e base <b>B</b> (deducibili da figura nei requisiti) contenente dei punti di interesse per la logica di business, in particolare 
-gli slots, anch'essi con una posizione definita (mostrata in figura da requisiti). Questo dai requisiti ci è sembrato un componente passivo, ampiamente legato alla logica dei dati della sua dimensione, degli slot e dei carichi. Per questo 
-abbiamo pensato di utilizzare la classe java <em>Hold</em> per formalizzarne il modello (non necessariamente una sceta di progetto o implementazione avanzata!!!). <br><br>
-
-Per rappresentare lo spazio rettangolare dell'hold e l'esatto posizionamento degli slot al suo interno, abbiamo pensato di utilizzare un sistema di coordinate discrete, ottenute astraendo il robot che si muoverà al suo interno come un cerchio di raggio <b>r</b>, e quindi suddividendo l'area della hold in quadrati di lato 2r. 
-Questo si riflette nel modello come una matrice di interi <em>int[][] hold</em>, di dimensione width(B/2r) * height(H/2r).<br><br>
-<img src="img/hold.png" width="25%"><br><br>
-
-Decidiamo di modellare i punti di interesse slot come indici interi i[1..<b>n</b>+1], che verranno inseriti staticamente all'interno della matrice, mentre gli spazi "vuoti" di hold verranno modellati come 0. Per rappresentare questo abbiamo deciso di riportare
-un possibile costruttore della nostra classe <em>Hold</em> che riceve, fra le altre cose, <em>int n</em> (numero di slots) e <em>slots_coordinates[n][2]</em> (coordinate dei singoli slots all'interno dell'<bc>hold</bc>)<br><br>
-
-Da requisiti, ogni slot può essere riservato o libero, perciò abbiamo pensato di modellare questo aspetto come un array di boolean di <b>n</b> elementi <em>int[] slots_reservations</em>, corrispondente agli stati degli slot (true = riservato, false = libero). Questo stato può essere sovrascritto tramite
-le funzioni pubbliche <em>void freeSlot(int slot_id)</em> e <em>void reserveSlot(int slot_id)</em>. Lo stato dei singoli slot puo essere ispezionato tramite <em>boolean isSlotReserved(int slot_id)</em>.<br><br>
-
+La <bc>hold</bc> è lo spazio di lavoro del cargorobot. Usiamo un sistema di coordinate
+basato sulla dimensione del robot: definiamolo come cerchio con raggio <b>r</b>, la stanza di base
+<b>B</b> e altezza <b>H</b>.
 </p>
 <pre>
-public Class Hold{
-    private int[][] hold;
-    private int width;       // width*2r  &lt; B &lt; width*(2r+1)
-    private int height;       // height*2r &lt; H &lt; height*(2r+1)
-    private int number_of_slots n;
-    private boolean slots_reservations[];
-
-    public Hold(int B, int H, int r, int n, int[][] slots_coordinates){
-        //inizializzazione dimensioni dell'hold da dati in input
-        width = B/(2*r);
-        height = H/(2*r);
-        hold = new int[H][W];
-
-        //inizializzazione dello spazio dell'hold a 0, quindi vuoto
-        for(int i = 0; i < height; i++){
-            for(int j = 0; j < width; j++){
-                hold[i][j] = 0;
-            }
-        }
-
-        this.n = n;
-        slots_reservations = new boolean[n];
-
-        //posizionamento statico degli slots e inizializzazione reservation a false, free
-        for(int i = 0; i < n; i++){
-            int slot_x = slots_coordinates[n][0];
-            int slot_y = slots_coordinates[n][1];
-
-            hold[slot_y][slot_x] = n+1;
-
-            slots_reservations[n] = false;
-        }
-
-    }
-
-    public void freeSlot(int slot_id){
-        slots_reservations[slot_id - 1] = false;
-    }
-
-    public void reserveSlot(int slot_id){
-        slots_reservations[slot_id - 1] = true;
-    }
-
-    public boolean isSlotReserved(int slot_id){
-        return slots_reservations[slot_id - 1];
-    }
-
-
-}
+int hold[ ][ ]
+int width  = B/2r        // width*2r  &lt; B &lt; width*(2r+1)
+int height = H/2r        // height*2r &lt; H &lt; height*(2r+1)
 </pre>
+<p>
+La posizione <bc>HOME</bc> è definita come <tt>hold[0][0]</tt>.
+Il committente fornisce la mappa con i seguenti punti di interesse:
+</p>
+<pre>
+hold[1][2] = slot1
+hold[1][3] = slot2
+hold[3][2] = slot3
+hold[3][3] = slot4
+hold[2][4] = slot5           // slot temporaneo per marcatura
+hold[0][5] = IOPORT     // posizione della IOPort nella griglia
+</pre>
+<img src="img/hold.png" width="25%">
+
+<div class="remark">
+<b>Natura software:</b> la hold è modellata come <em>POJO</em>, in quanto entità passiva che contiene altri POJO.
+La logica di orchestrazione risiede nel <bc>cargoservice</bc>.
+</div>
+
+<h3>Slot</h3>
+<p>
+Gli slot sono celle della hold che contengono al massimo 1 container. Distinguiamo due tipologie:
+</p>
+<ul>
+    <li><bc>slot1-4</bc>: slot <em>permanenti</em>. Destinazione finale del container.</li>
+    <li><bc>slot5</bc>: slot <em>transitorio</em>. Il container vi sosta per la marcatura (barcode).
+        Un dispositivo "marker" applica l'etichetta e segnala il completamento al sistema.</li>
+</ul>
+<p>Modelliamo gli slot come <em>POJO</em>:</p>
+<pre>
+bool occupato       // false = libero, true = container presente
+</pre>
+<div class="remark">
+<b>Natura software:</b> gli slot sono modellati come <em>POJO</em> in quanto entità passive.
+</div>
 
 <h3>IOPort</h3>
 <p>
@@ -173,196 +97,48 @@ La <bc>IOPort</bc> è il punto di ingresso/uscita dei container nella hold.
 </p>
 <p>Logicamente, la IOPort è composta da:</p>
 <ul>
-    <li><bc>pushbutton</bc>: pulsante fisico. Premuto dal cliente, invia una <em>richiesta di carico</em> al cargoservice. (attivo)
-    <li><bc>display</bc>: mostra risposta e stato della hold. (passivo)
-    <li><bc>sensor</bc>: periodicamente rileva la distanza D nella <bc>IOPort</bc>, e quando questa è minore di =DFREE/2 per almeno 3 secondi è in grado di dedurre la presenza di un ostacolo. (attivo)
+    <li><bc>pushbutton</bc>: pulsante fisico. Premuto dal cliente, invia una <em>richiesta di carico</em> al cargoservice.
+    <li><bc>display</bc>: mostra risposta e stato della hold.
+    <li><bc>sensor</bc>: rileva la distanza D di un ostacolo.
+    <li><bc>led</bc>: notifica visivamnete quando il sistema è engaged.
 </ul>
 <div class="remark">
-<b>Natura software:</b> già da requisiti è possibile capire come <bc>IOPort</bc> sia un componente complesso, composto da elementi proattivi come <bc>pushbutton</bc> e <bc>sensor</bc>, che devono essere in grado di inviare autonomamente una comunicazione, e passivi come <bc>display</bc>, il cui stato può solo essere modificato dall'esterno .<br><br>
-Per questo abbiamo pensato di modellare <bc>display</bc> come un POJO (classe <em>Display</em>) <br><br>
-<bc>pushbutton</bc> e <bc>sensor</bc> verranno invece modellati come attori QAK.
-<!--<br><br>Inoltre, pensiamo che sia importante introdurre un nuovo componente già in modellazione, <em>IOService</em>, che incapsuli le logiche di business espresse nei requisiti e legate a questi componenti. In particolare questo si occuperà di intrattenere la comunicazione con cargoservice, comandando gli aggiornamenti di <bc>display</bc> quando necessario.-->
+<b>Natura software:</b> dal punto di vista fisico, è una posizione speciale nella hold (hold[0][5]).<br>
+Al livello logico invece, è l'<em>ATTORE</em> <bc>ioservice</bc> (contesto <tt>ctx_io</tt>) che orchestra le periferiche fisiche <bc>pushbutton</bc>, <bc>display</bc> e <bc>led</bc>, che sono <em>ATTORI</em>.<br>
+Il <bc>sensor</bc>, pur fisicamente associato alla IOPort, è gestito da <bc>sensorservice</bc> in un contesto dedicato (<tt>ctxsensor</tt>).
 </div>
-
-<h3>Display</h3>
-<p>
-    <bc>display</bc> è un componente che deve essere in grado di:
-    <ul>
-        <li>Mostrare la risposta alla richiesta di carico conseguente alla pressione di <bc>pushbutton</bc>: "Accepted" oppure "Retry Later"</li>
-        <li>Mostrare lo "stato corrente" della <bc>hold</bc></li>
-        <li>Mostrare lo stato di funzionamento del <bc>sonar sensor</bc>: "Service working" oppure "Out of Service"</li>
-    </ul>
-
-    <b style="color:red;">?????Cosa intende il committente con "stato corrente" della hold???????????</b><br><br>
-
-    Decidiamo dunque di modellarlo con l'astrazione di POJO (classe <em>Display</em>), dotato di:
-    <ul>
-        <li>
-            Metodo <em>updateHoldStatus</em> per l'aggiornamento dello stato della <bc>hold</bc>. 
-            Questo riceve in input lo stato aggiornato mediante Stringa di caratteri e va a stamparlo.
-        </li>
-        <li>
-            Metodo <em>updateReply</em>, che riceve un valore booleano <em>reply</em> (true= Accepted, false= Retry Later) e va a stampare il messaggio corrispondente
-        </li>
-        <li>
-            Metodo <em>updateSonarStatus</em>, che riceve un valore booleano <em>status</em> (true= Working, false= Out of Service) e va a stampare il messaggio corrispondente
-        </li>
-    </ul>
-    
-    <pre>
-        public Class Display{
-            public void updateHoldStatus(String status){
-                ......
-            }
-
-            public void updateReply(boolean reply){
-                String replyMessage = reply ? "Request Accepted" : "Retry Later";
-                System.out.println(replyMessage);
-            }
-
-            public void updateSonarStatus(boolean status){
-                String statusMessage = reply ? "System Working" : "Out of Serivce";
-                System.out.println(statusMessage);
-            }
-        }
-    </pre>
-
-</p>
-
-<h3>Pushbutton</h3>
-<p>
-    <bc>pushbutton</bc> è un componente che deve essere in grado di, un volta premuto, inviare una richiesta di carico a cargoservice<br><br>
-    E' quindi un componente attivo, in grado di iniziare un'interazione con altri componenti del sistema. Decidiamo di modellarlo come un attore QAK in grado di inviare una Reuqest (nei requisiti è esplicitamente detto che <bc>IOPort</bc> si aspetta una risposta per aggiornare <bc>display</bc>)
-    <em>requestToLoad</em> una volta premuto.<br><br>
-    <!--
-    Vogliamo far notare  come, nonostante i requisiti esplicitino che sia necessario ricevere una risposta dalla richiesta di carico per aggiornare il <bc>display</bc>, 
-    la responsabilità di tale comunicazione è stata da noi modellata all'interno di <em>IOService</em>, dividendo logica di funzionamento di <bc>pushbutton</bc> e della sua pressione dalla logica 
-    di business della richiesta di carico vera e propria.-->
-
-    (qua QAK)
-</p>
-
-<!--<h3>IOService</h3>
-<p>
-    <em>IOService</em> per noi deve essere in grado di incorporare la logica di business legata a:
-    <ul>
-        <li>Inviare richiesta di nuovo carico</li>
-    </ul>
-</p>-->
-
 
 <h3>Sensor</h3>
 <p>
 Il <bc>sensor</bc> è un componente <em>attivo</em> che rileva la presenza o l'assenza di un
 container presso la IOPort, misurando una distanza D.<br>
-Inoltre, data una distanza =DFREE, valgono le seguenti proprietà:
+Data una distanza DFREE, valgono le seguenti proprietà:
 </p>
 <pre>
-D < =DFREE/2                           = container presente, IOPort occupata
-=DFREE/2 <= D <= =DFREE           = misurazione valida, IOPort libera
-D > =DFREE per più di 3 sec     = sistema entra in Out-of-Service
+D < DFREE/2                           = container presente, IOPort occupata
+DFREE/2 <= D <= DFREE           = misurazione valida, IOPort libera
+D > DFREE per più di 3 sec     = sistema entra in Out-of-Service
 </pre>
-<!--
-<p>
-    Anche qui ci sembra che i requisiti mischino logiche di funzionamento e logiche di business, per questo decidiamo di modellare questo componente come due:
-    <ul>
-        <li>Pojo <em>Sensor</em>, responsabile di effettuare le letture di distanza</li>
-        <li>Attore QAK <em>SensorService</em>, responsabile di implementare la logica di business e di inviare i messaggi: <em>PackageDetected</em>, <em>OutOfService</em></li>
-    </ul>
-</p>
--->
-<p>
-    Comunque decidiamo di modellare <bc>sensor</bc> come una classe java <em>Sensor</em> avente un main con un loop infinito in cui controlla la distanza con un metodo (stub) private int <em>checkDistance()</em>
-    e che aggiorna due variabili boolean di stato <em>outOfService</em> e <em>occupied</em>.<br><br>
-</p>
+<p>Emette periodicamente verso <bc>sensorservice</bc> (interno a <tt>ctxsensor</tt>):</p>
 <pre>
-public class Sensor(){
-    private boolean outOfService;
-    private boolean occupied;
-    private int static DFREE;
-
-    public static void main(String[] args){
-        int occupiedCounter = 0;
-        int outOfServiceCounter = 0;
-        while(true){
-            int D = checkDistance();
-
-            System.out.println("Distance: "+D);
-            time.wait(1);
-
-            if(D >= DFREE/2 && D <= DFREE){
-                counterOutOfService = 0;
-                counterOccupied = 0;
-                outOfService = false;
-                occupied = false;
-
-            } else if(D < DFREE){
-                coutnerOccupied++;
-                counterOutOfService = 0;
-                outOfService = false;
-
-            } else {
-                counterOutOfService++;
-                counterOccupied = 0;
-                occupied = false;
-            }
-
-            if(counterOccupied >= 3){
-                occupied = true;
-            }
-
-            if(counterOutOfService >= 3){
-                outOfService = true;
-            }
-
-        }
-
-    }
-
-    private int checkDistance(){
-        int measuredDistance;
-        ......
-        return measuredDistance;
-    }
-}
+Dispatch sensordata : sensordata(D)    // distanza grezza misurata
 </pre>
-<!--
-<p>
-    Invece per quanto riguarda SensorService, lo pensiamo come attore QAK in grado di ricevere le letture di <bc>sensor</bc>, interpretarle e inviare due Dispatch:  <em>PackageDetected</em>, <em>OutOfService</em> al bisogno come illustrato precedentemente.
-</p>
--->
+<div class="remark">
+<b>Natura software</b> modellato come <em>ATTORE</em> in quanto componente <em>attivo</em>.
+I dati grezzi non escono mai da <tt>ctxsensor</tt>: è <bc>sensorservice</bc> a tradurli in messaggi semantici per cargoservice.
+</div>
 
 <h3>Led</h3>
 <p>
-Il <bc>led</bc> è un dispositivo passivo di notifica visiva. I suoi comportamenti:
+Il <bc>led</bc> è un dispositivo di notifica visiva. I suoi comportamenti:
 </p>
 <ul>
     <li><tt>BLINK</tt>: stato <em>ENGAGED</em></li>
     <li><tt>OFF</tt>: stati <em>DISENGAGED/OUT OF ORDER</em></li>
 </ul>
-
-<p>
-In questa fase di analisi dei requisiti modelliamo il led come una classe java, avente una variabile booleana blink che ne rappresenta lo stato (true = engaged, false = disengaged/out of order).
-Il led puoò assere acceso/spento tramite i metodi void blink() e off(). Il suo stato può essere verificato tramite il metodo boolean isBlinking().
-</p>
-
-<pre>
-public class Led(){
-    private boolean blink = false;
-
-    public void blink(){
-        blink = true;
-    }
-
-    public void off(){
-        blink = false;
-    }
-
-    public boolean isBlinking(){
-        return blink;
-    }
-}
-</pre>
+<div class="remark">
+<b>Natura software</b> modellato come <em>ATTORE</em> in quanto componente <em>attivo</em> che risiede su un nodo remoto, ad esempio Raspberry Pi.
+</div>
 
 <h2>Il core business</h2>
 
@@ -380,10 +156,6 @@ La logica di business principale è composta da:
 
 <h2>Architettura Logica del Sistema</h2>
 <p>
-    Scegliamo di utilizzare il domain-specific language QAK per modellare i componenti dell'architettura e le loro interazioni in quanto linguaggio volto non solo alla programmazione ma anche alla descrizione e analisi dei sistemi.
-<br><br>
-    In questa fase decidiamo di fare qualche scelta di progetto. Innanzitutto, 
-<br><br>
 L'architettura logica è descritta nell'immagine. Abbiamo deciso di creare l'attore <bc>cargorobot</bc> per astrarre il dominio di robotsmart:
 cargoservice ha lo scopo di comunicare le posizioni astratte come slot1-5, home, ioport senza conoscere il sistema di coordinate.
 Inoltre, se si vuole utilizzare un robot reale basterà modificare solo le chiamate di cargorobot senza cambiare la logica di business di cargoservice.<br>
@@ -459,6 +231,7 @@ Reply    doplanfailed : doplanfailed(PLANTODO) for doplan</code></pre>
     <li><bc>cargorobot</bc>: Sprint 1 (astrazione movimentazione robotsmart)</li>
     <li><bc>hold</bc> : Sprint 1 (gestione mappa e slot)</li>
     <li><bc>sensorservice</bc> : Sprint 2 (attività del sensore a cargoservice)</li>
+    <li><bc>sensor</bc> : Sprint 2 (rilevazione distanza)</li>
     <li><bc>ioservice</bc> : Sprint 3 (gestione io hw)</li>
     <li><bc>pushbutton</bc> : Sprint 3 (input virtuale/hw)</li>
     <li><bc>display</bc> : Sprint 3 (output verso utente / webGUI)</li>
@@ -473,7 +246,6 @@ Reply    doplanfailed : doplanfailed(PLANTODO) for doplan</code></pre>
     <li>
         <bc>WEnv</bc> (VirtualRobot26, Docker)
     </li>
-    <li><bc>sensor ???</bc></li>
 </ul>
 
 
