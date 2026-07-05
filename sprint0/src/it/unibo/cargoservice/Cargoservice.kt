@@ -79,34 +79,25 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("startLoading") { //this:State
 					action { //it:State
-						request("do_move", "do_move(ioport)" ,"cargorobot" )  
+						request("doplan", "doplan(PLAN)" ,"robotsmart" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t05",targetState="moveToSlot",cond=whenReply("move_done"))
-					transition(edgeName="t06",targetState="handleMoveFailed",cond=whenReply("move_failed"))
+					 transition(edgeName="t05",targetState="moveToSlot",cond=whenReply("doplandone"))
+					transition(edgeName="t06",targetState="handleMoveFailed",cond=whenReply("doplanfailed"))
 				}	 
 				state("moveToSlot") { //this:State
 					action { //it:State
-						request("do_move", "do_move($SLOT)" ,"cargorobot" )  
+						request("doplan", "doplan(PLAN)" ,"robotsmart" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t07",targetState="loadComplete",cond=whenReply("move_done"))
-					transition(edgeName="t08",targetState="handleMoveFailed",cond=whenReply("move_failed"))
-				}	 
-				state("loadComplete") { //this:State
-					action { //it:State
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+					 transition(edgeName="t07",targetState="disengaged",cond=whenReply("doplandone"))
+					transition(edgeName="t08",targetState="handleMoveFailed",cond=whenReply("doplanfailed"))
 				}	 
 				state("handleMoveFailed") { //this:State
 					action { //it:State
