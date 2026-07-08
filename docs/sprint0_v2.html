@@ -238,23 +238,10 @@ public Class Hold{
 
 }
 
-QActor hold context ctx_hold {
-    [#
-        var holdObj : Hold? = null
-    #]
+QActor hold context ctx_cargoservice {
 
     State s0 initial {
-        [#
-            holdObj = Hold()
-            holdObj.setWidthHeight(7,5,1)
-            setSlots(5,arrayOf(
-                intArrayOf(2, 1),
-                intArrayOf(3, 1),
-                intArrayOf(2, 3),
-                intArrayOf(3, 3),
-                intArrayOf(4, 2))
-                )
-        #]
+
     }
 }
 </pre>
@@ -372,6 +359,7 @@ La logica di business principale è composta da:
 Definiamo una prima architettura logica del sistema, 
 composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <bc>webGUI</bc>, <bc>robotsmart</bc>, ognuno con il proprio contesto.
 </p>
+<a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint0/src/sprint0.qak">Link ad architettura QAK</a><br><br>
 <img src="img/arch0.png" width="50%">
 
 <h2>Componenti da Sviluppare</h2>
@@ -389,8 +377,13 @@ composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <
 <h3>Forniti dal committente</h3>
 <p>
     Essendo la nostra azienda specializzata in robotica, ci vengono forniti diversi software di controllo del DDR, ognuno con proprietà diverse. <br><br>
-    ... spiegare le differneze ... virtualrobot26...
-    Abbiamo scelto quindi di usare il software di controllo robotsmart26, poichè ci permette di astrarre ... mqtt .. qak...
+    
+    Abbiamo due implementazioni di robot: <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=289">VirtualRobot26</a></em> e <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=319">RobotSmart26</a></em>, queste si differenziano perchè virtual robot implementa solo movimenti "base", come muovere il robot in avanti o farlo ruotare, mentre robot smart implementa anche il concetto di stato locale e di planning.<br><br>
+    
+    Inoltre abbiamo anche due interfacce per poter comunicare con questi robot, ovvero <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=299">RobotObj26</a></em> e <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=303">RobotService26</a></em>. La prima espone i comandi del robot tramite Interfaccia Java, quindi permettendo di vedere il robot come un POJO, mentre l'altra rende il robot un attore QAK.<br><br>
+    
+    Sarà compito dei progettisti decidere se e quale di questi software potrà essere usato per il progetto.<br><br>
+
 
     <br><br>L'altro componente fornito è <bc>WEnv</bc>, un ambiente virtuale che simula la Hold e il robot, 
     e ci permette di sviluppare l'interezza del sistema senza dipendere da un'implementazione fisica. <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=289">(Documentazione WEnv)</a>.

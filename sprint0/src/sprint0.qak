@@ -13,9 +13,11 @@ Context   ctx_robot        ip [host="127.0.0.1" port=8020]
 //Context ctx_webgui       ip [host="localhost" port=8500]
 
 
-ExternalQActor robot context ctx_robot
-//ExternalQActor sensor  context ctx_sensor
-//ExternalQActor webgui  context ctx_webgui
+ExternalQActor   robot       context ctx_robot
+//ExternalQActor sensor      context ctx_sensor
+//ExternalQActor led      context ctx_sensor
+//ExternalQActor pushbutton  context ctx_webgui
+//ExternalQActor display     context ctx_webgui
 
 
 //attore principale del core business del sistema.
@@ -50,5 +52,12 @@ QActor cargoservice context ctx_cargoservice {
 
     State outOfService {
     	//gestisco out of service
+    }
+}
+
+QActor hold context ctx_cargoservice {
+
+    State s0 initial {
+
     }
 }
