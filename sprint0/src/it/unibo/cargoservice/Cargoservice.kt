@@ -46,60 +46,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t00",targetState="outOfService",cond=whenDispatch("sensorError"))
-					transition(edgeName="t01",targetState="handleLoadRequest",cond=whenRequest("load_request"))
+					 transition(edgeName="t00",targetState="engaged",cond=whenRequest("load_request"))
 				}	 
-				state("handleLoadRequest") { //this:State
-					action { //it:State
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="checkIoport", cond=doswitch() )
-				}	 
-				state("checkIoport") { //this:State
-					action { //it:State
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition(edgeName="t02",targetState="startLoading",cond=whenReply("container_present"))
-					transition(edgeName="t03",targetState="waitContainer",cond=whenReply("container_absent"))
-				}	 
-				state("waitContainer") { //this:State
-					action { //it:State
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition(edgeName="t04",targetState="startLoading",cond=whenDispatch("containerIn"))
-				}	 
-				state("startLoading") { //this:State
-					action { //it:State
-						request("doplan", "doplan(PLAN)" ,"robotsmart" )  
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition(edgeName="t05",targetState="moveToSlot",cond=whenReply("doplandone"))
-					transition(edgeName="t06",targetState="handleMoveFailed",cond=whenReply("doplanfailed"))
-				}	 
-				state("moveToSlot") { //this:State
-					action { //it:State
-						request("doplan", "doplan(PLAN)" ,"robotsmart" )  
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition(edgeName="t07",targetState="disengaged",cond=whenReply("doplandone"))
-					transition(edgeName="t08",targetState="handleMoveFailed",cond=whenReply("doplanfailed"))
-				}	 
-				state("handleMoveFailed") { //this:State
+				state("engaged") { //this:State
 					action { //it:State
 						//genTimer( actor, state )
 					}
@@ -115,27 +64,6 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t09",targetState="recoveryFromOOS",cond=whenDispatch("sensorReady"))
-					transition(edgeName="t010",targetState="rejectOOS",cond=whenRequest("load_request"))
-				}	 
-				state("rejectOOS") { //this:State
-					action { //it:State
-						answer("load_request", "retrylater", "retrylater(out_of_service)"   )  
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="outOfService", cond=doswitch() )
-				}	 
-				state("recoveryFromOOS") { //this:State
-					action { //it:State
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
 				}	 
 			}
 		}

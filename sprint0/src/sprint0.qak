@@ -6,140 +6,49 @@ Reply    load_accepted : load_accepted(SLOT)  for load_request
 Reply    load_rejected : load_rejected(X)     for load_request
 Reply    retrylater    : retrylater(X)        for load_request
 
-//Check sincrono della presenza di un container alla IOPort, quando cargoservice accetta il carico
-Request  check_container   : check_container(X)
-Reply    container_present : container_present(X)  for check_container
-Reply    container_absent  : container_absent(X)   for check_container
-
-//Check asincrono della presenza di un container alla IOPort, 
-//quando cargoservice accetta il carico ma non c'è ancora un cotnainer alla IOPort. Container da inserire entro 30s.
-//sensor invia containerIn quando un container è stato posizionato, containerOut quando è rimosso.
-//sensorError e sensorReady si occupano della detection di guasto e recovery del sensor
-Dispatch containerIn   : containerIn(X)
-Dispatch containerOut  : containerOut(X)
-Dispatch sensorError   : sensorError(X)
-Dispatch sensorReady   : sensorReady(X)
-
-//Richieste per muovere il robot verso una COORDINATA specifica, come definiti in robotsmart.
-//Prima bisogna inserire le coordinate per creare un piano di movimento attraverso buildPlan,
-//poi il piano va avviato con doplan.
-Request  buildPlan     : buildPlan(PX,PY,TX,TY)
-Reply    buildPlanDone : buildPlanDone( PLAN ) for buildPlan
-
-Request  doplan        : doplan( PLAN, STEPTIME )
-Reply    doplandone    : doplandone( ARG )          for doplan
-Reply    doplanfailed  : doplanfailed( PLANTODO )   for doplan
-
-
-//Dispatch setDisplay    : setDisplay(MSG)   //testo da mostrare sul display
-//Dispatch setLed        : setLed(STATE)     //stato led: on | off | blink
-
 
 Context   ctx_cargoservice ip [host="localhost" port=8000]
-Context   ctxrobotsmart    ip [host="127.0.0.1" port=8020]
+Context   ctx_robot        ip [host="127.0.0.1" port=8020]
 //Context ctx_sensor       ip [host="localhost" port=8030]
-//Context ctx_web          ip [host="localhost" port=8500]
+//Context ctx_webgui       ip [host="localhost" port=8500]
 
 
-ExternalQActor robotsmart context ctxrobotsmart
+ExternalQActor robot context ctx_robot
 //ExternalQActor sensor  context ctx_sensor
-//ExternalQActor webgui  context ctx_io
+//ExternalQActor webgui  context ctx_webgui
 
 
 //attore principale del core business del sistema.
 QActor cargoservice context ctx_cargoservice {
-
+	
+	//dai requisiti, gli stati del sistema sono: ENGAGED, DISENGAGED, OUTOFSERVICE
     State s0 initial {
         //inizializzare hold
     }
     Goto disengaged
 
 
-
-
     State disengaged {
-        //forward web -m setDisplay   : setDisplay("Service Working")
-        //forward ctx_sensor -m setLed : setLed(off)
+        //gestione 
     }
     Transition t0
-        whenMsg     sensorError   -> outOfService
-        whenRequest load_request -> handleLoadRequest
+        whenRequest load_request -> engaged
 
 
-
-    State handleLoadRequest {
+    State engaged {
         //controllo: hold piena?   -> load_rejected
         // 			 outOfService? -> retrylater
         //			 engaged?      -> retrylater
         //			 tutto okay?   -> load_accepted[slot]
-    }
-    Goto checkIoport
-
-
-
-
-    State checkIoport {
-        //il container potrebbe essere già all'IOPort
-        //request sensor -m check_container : check_container(x)
-    }
-    Transition t0
-        whenReply container_present -> startLoading   //container già depositato
-        whenReply container_absent  -> waitContainer  //attesa asincrona, max 30s
-
-
-
-    State waitContainer {
-        //avvia timer 30s - timeout - libera slot, retrylater, torna disengaged
-    }
-    Transition t0
-        whenMsg containerIn  -> startLoading
-        //TODO: transizione timeout
-
-
-    State startLoading {
-    	//muovo robot a ioport
-    	//buildPlan e buildPlanDone (ricevo PLAN)
-    	request robotsmart -m doplan : doplan(PLAN)
-    }
-    Transition t0
-    	whenReply doplandone -> moveToSlot
-    	whenReply doplanfailed -> handleMoveFailed
         
-
-    State moveToSlot {
-    	//muovo robot a slot
-    	//buildPlan e buildPlanDone (ricevo PLAN)
-        request robotsmart -m doplan : doplan(PLAN)
-    }
-    Transition t0
-    	whenReply doplandone   -> disengaged
-    	whenReply doplanfailed -> handleMoveFailed
-
-
-    State handleMoveFailed {
-		//gestisco errore movimentazione
+        //muovo robot a ioport
+        //muovo robot a slot
+        
     }
     Goto disengaged
-
 
 
     State outOfService {
     	//gestisco out of service
-    	//forward web -m setDisplay : setDisplay("Out of Service")
     }
-    Transition t0
-        whenMsg     sensorReady   -> recoveryFromOOS
-        whenRequest load_request -> rejectOOS
-
-    State rejectOOS {
-    	//reject di richiesta di carico quando sono in out of service
-        replyTo load_request with retrylater : retrylater(out_of_service)
-    }
-    Goto outOfService
-
-    State recoveryFromOOS {
-    	//sensore in funzione: sistema torna operativo
-        //forward ioservice -m setDisplay : setDisplay("Service Working")
-    }
-    Goto disengaged
 }

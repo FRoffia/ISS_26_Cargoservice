@@ -27,7 +27,6 @@ with Diagram('sprint0Arch', show=False, outformat='png', graph_attr=graphattr) a
 ### see https://renenyffenegger.ch/notes/tools/Graphviz/attributes/label/HTML-like/index
      with Cluster('ctx_cargoservice', graph_attr=nodeattr):
           cargoservice=Custom('cargoservice','./qakicons/symActorWithobjSmall.png')
-     with Cluster('ctxrobotsmart', graph_attr=nodeattr):
-          robotsmart=Custom('robotsmart(ext)','./qakicons/externalQActor.png')
-     cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<doplan<font color="darkgreen"> doplandone doplanfailed</font> &nbsp; >',  fontcolor='magenta') >> robotsmart
+     with Cluster('ctx_robot', graph_attr=nodeattr):
+          robot=Custom('robot(ext)','./qakicons/externalQActor.png')
 diag

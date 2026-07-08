@@ -159,7 +159,7 @@ Per rappresentare lo spazio rettangolare dell'hold e l'esatto posizionamento deg
     <bc>hold</bc> in quadrati di lato 2r. Questo si riflette nel modello come una matrice di interi<br>
       <em>int[ ][ ] hold</em>, di dimensione width(B/2r) * height(H/2r).<br>
 
-<br>    <img src="img/hold.png" width="50%"><br><br>
+<br>    <img src="img/hold.png" width="30%"><br><br>
 
 Da requisiti, ogni <bc>slot</bc> può essere riservato o libero, perciò abbiamo pensato di modellare 
     <bc>slot</bc> come una classe <em>Slot</em>, dotata di un parametro boolean <em>reserved</em> 
@@ -267,7 +267,7 @@ La <bc>IOPort</bc> è fisicamente il punto di ingresso/uscita dei container nell
 <ul>
     <li><bc>pushbutton</bc>: pulsante fisico. Premuto dal cliente, invia una <em>richiesta di carico</em> al cargoservice. (attivo)
     <li><bc>display</bc>: mostra risposta e stato della hold. (passivo)
-    <li><bc>sensor</bc>: rileva la distanza D nella <bc>IOPort</bc>, e quando questa è minore di =DFREE/2 per almeno 3 secondi è in grado di dedurre la presenza di un ostacolo. (attivo)
+    <li><bc>sensor</bc>: rileva la distanza D nella <bc>IOPort</bc>, e quando questa è minore di DFREE/2 per almeno 3 secondi è in grado di dedurre la presenza di un ostacolo. (attivo)
 </ul>
 <div class="remark">
 <b>Natura software:</b>
@@ -351,7 +351,6 @@ public class Led(){
 <p>
     Questo componente non è presente nei requisiti testuali, ma è stato definito in un colloquio con il committente. 
     Come descritto dal committente, la <bc>WebGUI</bc> è un'interfaccia web che contiene <bc>display</bc> e <bc>pushbutton</bc>.<br><br>
-    ALTRO??? 
 </p>
 
 <h2>Il core business</h2>
@@ -373,6 +372,7 @@ La logica di business principale è composta da:
 Definiamo una prima architettura logica del sistema, 
 composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <bc>webGUI</bc>, <bc>robotsmart</bc>, ognuno con il proprio contesto.
 </p>
+<img src="img/arch0.png" width="50%">
 
 <h2>Componenti da Sviluppare</h2>
 <h3>Da sviluppare</h3>
@@ -508,31 +508,7 @@ public void testT05() throws Exception {
 }
 </code></pre>
 
-<h4>T06: Recovery da Out-of-Service</h4>
-<div class="remark">
-<b>Precondizione:</b> sistema in OUT_OF_SERVICE (T05 eseguito).<br/>
-<b>Atteso:</b> dopo <tt>sensorReady</tt> da sensor il sistema torna in DISENGAGED
-e accetta nuove richieste.
-</div>
-<pre><code>@Test
-public void testT06() throws Exception {
-    //porto il sistema in OUT_OF_SERVICE
-    conn.forward(CommUtils.buildDispatch("tester", "sensorError", "sensorError(x)", "cargoservice").toString());
-    CommUtils.delay(300);
-
-    //simulo fine guasto
-    conn.forward(CommUtils.buildDispatch("tester", "sensorReady", "sensorReady(x)", "cargoservice").toString());
-    CommUtils.delay(300);
-
-    //invio richiesta di carico
-    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
-    String resp = conn.request(req);
-
-    assertTrue("T06: recovery - sistema torna in DISENGAGED", resp.contains("load_accepted"));
-}
-</code></pre>
-
-<h4>T07: Container già presente all'IOPort - carico immediato</h4>
+<h4>T06: Container già presente all'IOPort - carico immediato</h4>
 <div class="remark">
 <b>Precondizione:</b> container depositato <em>prima</em> della load_request
 (il dispatch <tt>containerIn</tt> è fire and forget ed è già andato perso).<br/>
@@ -541,14 +517,14 @@ public void testT06() throws Exception {
 e il ciclo di movimentazione parte subito, senza attendere i 30s.
 </div>
 <pre><code>@Test
-public void testT07_ContainerAlreadyAtIoport() throws Exception {
+public void testT06_ContainerAlreadyAtIoport() throws Exception {
     //setto lo stub del sensoreservice in stato "container presente"
     sensorStub.setContainerStatus(true);
 
     //invio richiesta di carico
     String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
     String resp = conn.request(req);
-    assertTrue("T07 setup: richiesta accettata", resp.contains("load_accepted"));
+    assertTrue("T06 setup: richiesta accettata", resp.contains("load_accepted"));
 
     CommUtils.delay(8000); //attendo finisca l'operazione
 
@@ -557,7 +533,7 @@ public void testT07_ContainerAlreadyAtIoport() throws Exception {
     String req2 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
     String resp2 = conn.request(req2);
 
-    assertTrue("T07: carico avviato con container già presente", resp2.contains("load_accepted"));
+    assertTrue("T06: carico avviato con container già presente", resp2.contains("load_accepted"));
 }
 </code></pre>
 
@@ -585,8 +561,7 @@ Lo <bc>Sprint 1</bc> ha come obiettivo la realizzazione del core business, per o
     <li><bc>T03</bc>: Timeout / DISENGAGED</li>
     <li><bc>T04</bc>: Hold piena</li>
     <li><bc>T05</bc>: Sensor guasto / OUT_OF_SERVICE</li>
-    <li><bc>T06</bc>: Recovery da OUT_OF_SERVICE</li>
-    <li><bc>T07</bc>: Container già presente all'IOPort</li>
+    <li><bc>T06</bc>: Container già presente all'IOPort</li>
 </ul>
 
 <h3>Componenti prodotti in Sprint 1</h3>
