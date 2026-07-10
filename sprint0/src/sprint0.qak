@@ -7,17 +7,10 @@ Reply    load_rejected : load_rejected(X)     for load_request
 Reply    retrylater    : retrylater(X)        for load_request
 
 
-Context   ctx_cargoservice ip [host="localhost" port=8000]
-Context   ctx_robot        ip [host="127.0.0.1" port=8020]
-//Context ctx_sensor       ip [host="localhost" port=8030]
-//Context ctx_webgui       ip [host="localhost" port=8500]
-
-
-ExternalQActor   robot       context ctx_robot
-//ExternalQActor sensor      context ctx_sensor
-//ExternalQActor led      context ctx_sensor
-//ExternalQActor pushbutton  context ctx_webgui
-//ExternalQActor display     context ctx_webgui
+Context  ctx_cargoservice ip [host="localhost" port=8010]
+Context  ctx_robot        ip [host="127.0.0.1" port=8020]
+Context  ctx_sensor       ip [host="127.0.0.2" port=8030]
+Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
 
 
 //attore principale del core business del sistema.
@@ -29,13 +22,11 @@ QActor cargoservice context ctx_cargoservice {
     }
     Goto disengaged
 
-
     State disengaged {
-        //gestione 
+		println("cargoservice | DISENGAGED: aspetto load_request") color green
     }
     Transition t0
         whenRequest load_request -> engaged
-
 
     State engaged {
         //controllo: hold piena?   -> load_rejected
@@ -44,7 +35,8 @@ QActor cargoservice context ctx_cargoservice {
         //			 tutto okay?   -> load_accepted[slot]
         
         //muovo robot a ioport
-        //muovo robot a slot
+        //muovo robot a slot 5
+        //muovo robot a slot 1..4 riservato
         
     }
     Goto disengaged
@@ -55,9 +47,64 @@ QActor cargoservice context ctx_cargoservice {
     }
 }
 
-QActor hold context ctx_cargoservice {
+QActor cargorobot context ctx_robot {
 
-    State s0 initial {
-
+    State s0 initial {}
+    Goto work
+    State work {
+        println("cargorobot | WORKING: moving containers from IOPort to slot5, then to reserved slot")
     }
+}
+
+QActor led context ctx_sensor {
+    State s0 initial {}
+    Goto off
+    
+    State off {
+        println("led | DISENGAGED: led off")
+    }
+    
+    State on {
+    	println("led | ENGAGED o OUT OF ORDER: led on")
+    }
+}
+
+QActor sensor context ctx_sensor {
+    State s0 initial {}
+    Goto work
+    State work {
+        println("sonar | WORK: measuring...") color blue
+    }
+}
+
+QActor ioport context ctx_ioport {
+	State s0 initial {
+		//in attesa della pressione del pushbutton
+	}
+	Goto pushbutton
+	
+	State pushbutton {
+		println("pushbutton pressed")
+		request cargoservice -m load_request : load_request(X)
+	}
+	Transition t0
+		whenReply load_accepted -> accepted
+		whenReply load_rejected -> rejected
+		whenReply retrylater -> retrylater
+		
+	State accepted {
+		println("ioport | DISPLAY: load accepted") color green
+	}
+	Goto s0
+	
+	State retrylater {
+		println("ioport | DISPLAY: retry later") color yellow
+	}
+	Goto s0
+	
+	State rejected {
+		println("ioport | DISPLAY: load rejected") color red
+	}
+	Goto s0
+	
 }

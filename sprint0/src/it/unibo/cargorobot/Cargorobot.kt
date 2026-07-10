@@ -29,21 +29,6 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
-		 val StepTime = 345
-		       var CurX     = 0
-		       var CurY     = 0
-		       var TargetX  = 0
-		       var TargetY  = 0
-		       var Plan     = ""
-		       val coordMap = mapOf(
-		           "home"   to Pair(0,0),
-		           "slot1"  to Pair(1,2),
-		           "slot2"  to Pair(1,3),
-		           "slot3"  to Pair(3,2),
-		           "slot4"  to Pair(3,3),
-		           "slot5"  to Pair(2,4),
-		           "ioport" to Pair(0,5)
-		       )
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -56,65 +41,12 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 				}	 
 				state("work") { //this:State
 					action { //it:State
+						CommUtils.outblack("cargorobot | WORKING: moving containers from IOPort to slot5, then to reserved slot")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t011",targetState="handleDoMove",cond=whenRequest("do_move"))
-				}	 
-				state("handleDoMove") { //this:State
-					action { //it:State
-						if( checkMsgContent( Term.createTerm("do_move(DEST)"), Term.createTerm("do_move(DEST)"), 
-						                        currentMsg.msgContent()) ) { //set msgArgList
-						}
-						request("buildPlan", "buildPlan($CurX,$CurY,$TargetX,$TargetY)" ,"robotsmart" )  
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition(edgeName="t012",targetState="executePlan",cond=whenReply("buildPlanDone"))
-				}	 
-				state("executePlan") { //this:State
-					action { //it:State
-						if( checkMsgContent( Term.createTerm("buildPlanDone(PLAN)"), Term.createTerm("buildPlanDone(PLAN)"), 
-						                        currentMsg.msgContent()) ) { //set msgArgList
-								 Plan = payloadArg(0)  
-								request("doplan", "doplan($Plan,$StepTime)" ,"robotsmart" )  
-						}
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition(edgeName="t013",targetState="moveOk",cond=whenReply("doplandone"))
-					transition(edgeName="t014",targetState="moveFailed",cond=whenReply("doplanfailed"))
-				}	 
-				state("moveOk") { //this:State
-					action { //it:State
-						CommUtils.outgreen("$name in ${currentState.stateName} | $currentMsg | ${Thread.currentThread().getName()} n=${Thread.activeCount()}")
-						 	   
-						 CurX = TargetX; CurY = TargetY  
-						answer("do_move", "move_done", "move_done(ok)"   )  
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="work", cond=doswitch() )
-				}	 
-				state("moveFailed") { //this:State
-					action { //it:State
-						CommUtils.outred("$name in ${currentState.stateName} | $currentMsg | ${Thread.currentThread().getName()} n=${Thread.activeCount()}")
-						 	   
-						answer("do_move", "move_failed", "move_failed(obstacle)"   )  
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="work", cond=doswitch() )
 				}	 
 			}
 		}
