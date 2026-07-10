@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="mystyle.css">
+    <meta charset="UTF-8">
+    <title>Sprint 0</title>
+</head>
+<body>
+
+<div id="top">
+    <h1>Sprint 0_v2: Analisi dei Requisiti</h1>
+</div>
+
+<div class="body">
+
+<h2>Contenuti</h2>
+<p>
+<bc>Sprint 0</bc>:
+<ol>
+    <li>Partiamo dall'<em>insieme di requisiti</em> forniti dal committente espressi in linguaggio naturale.</li>
+    <li>Svolgiamo un'<em>analisi di questi requisiti</em>, con l'obiettivo di esprimerli in linguaggio comprensibile a una macchina, e quindi di ottenere:</li>
+    <ul>
+        <li>un <em>modello</em> dell'architettura del sistema desunta dai requisiti</li>
+        <li>un (primo) <em>TestPlan</em> di <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=85">Functional Tests</a> (capitolo 5.10), con particolare attenzione alle <em>User Actions</em>, ovvero quelle azioni (espresse nei requisiti) con cui l'utente si aspetta di poter interagire con il sistema.</li>
+    </ul>
+    <li>Impostiamo un <em>piano di lavoro</em> che mira a definire:</li>
+    <ul>
+        <li>una prima <em>architettura logica</em> del sistema come risultato dall'analisi</li>
+        <li>la <em>definizione del primo SPRINT</em> della produzione</li>
+    </ul>
+</ol>
+(da <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=86">Il nostro metodo di lavoro</a>, capitolo 5.10.1)<br><br>
+
+Sarà inoltre obiettivo dello <bc>Sprint0</bc>:
+<ul>
+    <li>Evidenziare quali componenti sono forniti/indicati dal committente e quali invece bisogna sviluppare, dando indicazioni sulla natura software
+    dei componenti stessi.</li>
+    <li>Evidenziare il <em>core business</em> del sistema</li>
+</ul>
+(da <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=333">Lo Sprint0</a>, capitolo 32.1.1)<br><br>
+
+Inoltre, visto che la nostra software house si occupa già di robotica, sarà importante esplicitare l'esistenza di <em>software precedentemente sviluppati</em> che, da una prima lettura dei requisiti, ci sembra potrebbero essere utili nelle fasi successive.
+
+</p>
+
+<h2>Requisiti</h2>
+
+<div class="req">
+A <i>Maritime Cargo shipping company</i> (fron now on, simply <b>company</b>) intends to automate the operations of load of
+<b>containers</b> in the ship's cargo hold (or simply <b>hold</b>). To this end, the company plans to employ a <i>Differential Drive
+Robot</i> (from now, called <b>cargorobot</b>).
+The <i>hold</i> is a rectangular, flat area with an Input/Output port (<b>IOPort</b>). The area provides <i>4 slots</i> to store the
+containers and a slot named <b>slot5</b>.<br>
+In the picture below:
+<ul>
+    <li>The <b>slots1-4</b> depict the hold areas reserved to store one container each</li>
+    <li>The <b>slot5</b> depicts an area, where the cargorobot must temporarily store a container, before to place it in one of
+        the slots1-4. During temporary storage, a 'marker' device labels the container with an identification barcode and
+        signals when this marking activity is completed</li>
+    <li>The <b>IOPort</b> is a device with a <b>pushbutton</b> and a <b>display</b>. The pushbutton is pressed by the customer in order
+        to to send a request to load a container on the cargo. The display is used to show the answer to the request and
+        to show the current state of the hold</li>
+    <li>The <b>sensor</b> associated to the IOPort is a device (a sonar) used to detect the presence of a container, when it
+        measures a distance D, such that D < =DFREE/2, during a reasonable time (e.g. 3 secs)</li>
+</ul>
+</div>
+<img src="img/requisiti.png" width="53%">
+<div class="req">
+<p>
+  The company asks us to build service named <strong>cargoservice</strong> that should work as follows.
+</p>
+
+<p>
+  The <i>cargoservice</i> is able to receive a <strong>request to load</strong> a container sent by some customer by using the <i>pushbutton</i> of the <i>IOPort</i>.
+</p>
+
+<ul>
+  <li>
+    It sends the answer <code>retrylater</code>, if the <strong>IOPort</strong> is currently occupied by a container or if the system is <i>Out of service</i>
+  </li>
+
+  <li>
+    It rejects the request when the hold is already full, i.e. the <code>slots1-4</code> are already occupied.
+  </li>
+
+  <li>
+    Otherwise, it considers the system as <strong>engaged</strong>, detects a free slot and returns as answer the name of such a reserved slot.
+    <br>
+    While engaged, the system must blink a Led.
+  </li>
+</ul>
+
+<p>
+  When the <i>request to load</i> is accepted, the customer must move the container in the <i>sensor</i> area within prefixed amount of time (e.g. 30 secs),
+  otherwise the systems becomes <strong>disengaged</strong>.
+  Then, the <i>cargoservice</i> uses the <i>cargorobot</i> to move the container from the <i>IOPort</i> to the <i>slot5</i> (for marking the container) and then to the reserved slot.
+</p>
+
+<p>
+  The service must also show on the <i>display</i> on the <i>IOPort</i>:
+</p>
+
+<ul>
+  <li>the current state of the <i>hold</i></li>
+  <li>the message <strong>'Service working'</strong>, when it is all is going well</li>
+  <li>the message <strong>'Out of service'</strong> if the <i>sonar sensor</i> measures a distance D &gt; =DFREE for at least 3 secs (perhaps a failure of the sonar).</li>
+</ul>
+</div>
+
+<h2>Premessa: utilizzo di QAK</h2>
+<p>
+    L'analisi dei requisiti si fonderà principalmente sul concetto di attore e sull'utilizzo del 
+        <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#chapter.17">metamodello 
+        QAK</a></em>.<br><br>
+
+    Questo perchè, già da requisiti, risulta che il sistema sia caratterizzato da diversi componenti che 
+        necessitano di cominicare fra loro.<br><br>
+    
+    Ad esempio, parlando col committente, ci ha specificato come il <bc>sensor</bc> 
+        associato alla <bc>IOPort</bc> sia stato pensato come da montare fisicamente su un dispositivo 
+        Raspberry, mentre il servizio <bc>cargoservice</bc> descritto nei requisiti sia stato 
+        pensato per essere eseguito su un PC.<br><br>
+
+    Per questo riteniamo necessario spostarci da una rappresentazione che fa 
+        riferimento alla programmazione ad oggetti, a una che sfrutta un <em>DSL</em>, quindi un linguaggio 
+        che ci permette di ridurre l'abstraction gap, introducendo entità che possono 
+        di rappresentare :
+    <ul>
+        <li>I diversi <em>contesti</em> in cui il cliente si aspetta che i vari componenti vengano eseguiti.</li>
+        <li>I componenti del sistema come <em>attori</em>, quindi entità caratterizzate non solo dai dati 
+            ma anche dalla comunicazione con le altre entità del sistema.</li>
+        <li>I <em>messaggi</em> scambiati dagli attori del sistema.</li>
+    </ul>
+
+    Tutto questo senza la necessità di utilizzare librerie o implementazioni specifiche, semplificando così 
+        la lettura e la comprensione futura.<br><br>
+
+    Pensiamo inoltre che l'utilizzo di <em>QAK</em> ci permetta di pensare a ogni componente del sistema 
+        come un <em>mircoservizio</em>, ottenendo così piena technology independence, ovvero la possibilità di non essere costretti a una singola tecnologia per lo sviluppo dell'intero sistema, ma invece
+        di essere liberi di scegliere la tecnologia più appropriata per ogni componente senza paura di
+        complicare la comunicazione e lo sviluppo.
+</p>
+<h2>Analisi dei Requisiti</h2>
+
+<h3>Cargorobot</h3>
+<p>
+    <bc>Cargorobot</bc> da requisiti è un DDR, quindi il robot che si occupa di spostare i container dalla porta di carico 
+    allo slot 5 e successivamente allo slot riservato. In questa fase di modellazione, senza pensare a un'implementazione
+    vera e propria di questo robot, pensiamo di modellarlo come QActor <em>cargorobot</em> all'interno di un contesto ctx_robot separato da tutti
+    gli altri. Questo perchè, parlando col committente, risulta che il robot sarà probabilmente implementato su componenti
+    dedicati.
+</p>
+<pre>
+    QActor cargorobot context ctx_robot {
+
+        State s0 initial {
+
+        }
+        Goto working
+        State working {
+            println("cargorobot | WORKING: moving containers from IOPort to slot5, then to reserved slot")
+        }
+    }
+</pre>
+
+<h3>Cargoservice</h3>
+<p>
+Il <bc>cargoservice</bc> è il macro-componente che implementa il core-business e
+orchestra tutti gli altri componenti, modellato quindi come <em>ATTORE</em>.<br>
+La logica di business principale è composta da:
+    <ul>
+        <li>dove e quando spostare il cargorobot </li>
+        <li>accettare o rifiutare una richiesta di carico </li>
+        <li>quale slot libero associare alla richiesta che si sta servendo</li>
+        <li>mandare out of order il sistema quando si accorge di un malfunzionamento del sensor</li>
+    </ul>
+</p>
+<pre>
+
+</pre>
+
+<h3>Hold e slots</h3>
+<p>
+La <bc>hold</bc> è lo spazio di lavoro del cargorobot. Si tratta di uno spazio rettangolare di altezza 
+    <b>H</b> e base <b>B</b> (deducibili da figura nei requisiti), contenente dei punti di interesse per la 
+    logica di business, in particolare gli <bc>slot</bc>, anch'essi con una posizione definita (mostrata in 
+    figura da requisiti). La hold dai requisiti ci è sembrata un componente passivo, ampiamente legata alla 
+    logica dei dati (dimensione, slot e carichi). Nonostante questo, pensiamo sia necessario rappresentare <bc>hold</bc>
+    come un attore del sistema, dato che dai requisiti risulta che il sistema è orientato ai microservizi. Decidiamo
+    quindi di rappresentare la logica dei dati attraverso il POJO <em>Hold</em>, che poi verrà "incapsulato" all'interno
+    del QActor <em>holdActor</em> <br><br>
+
+Per rappresentare lo spazio rettangolare dell'hold e l'esatto posizionamento degli <bc>slot</bc> al suo 
+    interno, abbiamo pensato di utilizzare un sistema di coordinate discrete, ottenute suddividendo l'area della 
+    <bc>hold</bc> in quadrati. Questo si riflette nel modello come una matrice di interi<br>
+      <em>int[ ][ ] holdMap</em>.<br>
+
+<br>    <img src="img/hold.png" width="30%"><br><br>
+
+Da requisiti, ogni <bc>slot</bc> può essere riservato o libero, perciò abbiamo pensato di modellare 
+    <bc>slot</bc> come una classe <em>Slot</em>, dotata di un parametro boolean <em>reserved</em> 
+    corrispondente agli stati (true = riservato, false = libero), e dei metodi <em>free</em>, <em>reserve</em> 
+    ,<em>isReserved</em>.<br><br>
+
+Decidiamo di modellare la posizione dei punti di interesse <bc>slot</bc> come indici interi i[1 .. n+1], 
+    che verranno inseriti all'interno della matrice, mentre gli spazi "vuoti" di <bc>hold</bc> verranno 
+    modellati come 0.
+</p>
+<pre>
+public Class Slot{
+    private boolean reserved;
+
+    public void free(){
+        reserved = false;
+    }
+
+    public void reserve(){
+        reserve = true;
+    }
+
+    public boolean isReserved(){
+        return reserved;
+    }    
+}
+
+public Class Hold{
+    private int[][] holdMap;
+    private int width;               // width*2r  &lt; B &lt; width*(2r+1)
+    private int height;              // height*2r &lt; H &lt; height*(2r+1)
+    private int number_of_slots n;
+    private Slot slots[];
+    
+    public void setWidthHeight(int B, int H, int r){
+        //inizializzazione dimensioni dell'hold da dati in input
+        width = B/(2*r);
+        height = H/(2*r);
+        holdMap = new int[H][W];
+
+        //inizializzazione dello spazio dell'hold a 0, quindi vuoto
+        for(int i = 0; i < height; i++){
+            for(int j = 0; j < width; j++){
+                holdMap[i][j] = 0;
+            }
+        }
+    }
+
+    public void setSlots(int n, int[][] slots_coordinates){
+        this.n = n;
+        slots = new Slot[n];
+
+        //posizionamento statico degli slots e inizializzazione reservation a false, free
+        for(int i = 0; i < n; i++){
+            int slot_x = slots_coordinates[n][0];
+            int slot_y = slots_coordinates[n][1];
+
+            holdMap[slot_y][slot_x] = n+1;
+
+            slots[i].free();
+        }
+    }
+
+    public void freeSlot(int slot_id){
+        slots[slot_id - 1].free();
+    }
+
+    public void reserveSlot(int slot_id){
+        slots[slot_id - 1].reserve();
+    }
+
+    public boolean isSlotReserved(int slot_id){
+        return slots[slot_id - 1].isReserved();
+    }
+
+
+}
+
+QActor holdActor context ctx_cargoservice {
+
+    [#
+        var holdObj : Hold? = null
+    #]
+
+    State s0 initial {
+
+        [#
+            holdObj = Hold()
+            holdObj.setWidthHeight(7,5,1)
+            setSlots(5,arrayOf(
+                intArrayOf(2, 1),
+                intArrayOf(3, 1),
+                intArrayOf(2, 3),
+                intArrayOf(3, 3),
+                intArrayOf(4, 2))
+                )
+        #]
+
+    }
+}
+</pre>
+
+<h3>IOPort</h3>
+<p>
+La <bc>IOPort</bc> è fisicamente il punto di ingresso/uscita dei container nella hold.
+</p>
+<p>Logicamente, la IOPort è composta da:
+<ul>
+    <li><bc>pushbutton</bc>: pulsante fisico. Premuto dal cliente, invia una <em>richiesta di carico</em> al cargoservice. (attivo)
+    <li><bc>display</bc>: mostra risposta e stato della hold. (passivo)
+    <li><bc>sensor</bc>: rileva la distanza D nella <bc>IOPort</bc>, e quando questa è minore di DFREE/2 per almeno 3 secondi è in grado di dedurre la presenza di un ostacolo. (attivo)
+</ul>
+<div class="remark">
+<b>Natura software:</b>
+Come descritto dal committente, <bc>pushbutton</bc> e <bc>display</bc> verranno implementati in una <em>interfaccia web</em>, 
+che decidiamo di rappresentare attraverso un attore QAK chiamato <bc>webGUI</bc> con un contesto dedicato.
+</div>
+</p>
+
+<h3>Display</h3>
+<p>
+    <bc>display</bc> è un componente che, nelle modalità descritte nei requisiti, deve essere in grado di mostrare sull'interfaccia <bc>webGUI</bc>:
+    <ul>
+        <li>La risposta alla richiesta di carico conseguente alla pressione di <bc>pushbutton</bc>: "Accepted" oppure "Retry Later"</li>
+        <li>Lo "stato corrente" della <bc>hold</bc></li>
+        <li>Lo stato di funzionamento del <bc>sensor</bc>: "Service working" oppure "Out of Service"</li>
+    </ul>
+</p>
+
+<h3>Pushbutton</h3>
+<p>
+    <bc>pushbutton</bc> è un componente che, una volta premuto, deve essere in grado di inviare una richiesta di carico a <bc>cargoservice</bc>.<br>
+</p>
+
+
+<h3>Sensor</h3>
+<p>
+Il <bc>sensor</bc> è un componente <em>attivo</em> che rileva la presenza o l'assenza di un
+container presso la IOPort, misurando una distanza D.<br>
+Inoltre, data una distanza DFREE, valgono le seguenti proprietà:
+</p>
+<pre>
+D <= DFREE/2                           = container presente, IOPort occupata
+DFREE/2 <= D <= DFREE         = misurazione valida, IOPort libera
+D >= DFREE per più di 3 sec     = sistema entra in Out-of-Service
+</pre>
+<div class="remark">
+        <b>Natura software:</b> <em>attore QAK</em> con un proprio contesto <tt>ctx_sensor</tt>, 
+        poichè eseguito su un Raspberry che deve comunicare con il contesto <tt>ctx_cargoservice</tt> del PC della Hold. (Ricordiamo il ruolo del
+        <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=200">contesto in QAK</a>).
+</div>
+
+<h3>Led</h3>
+<p>
+Il <bc>led</bc> è un dispositivo passivo di notifica visiva, presente sullo stesso Raspberry del sensor, come richiesto dal committente. I suoi comportamenti:
+</p>
+<ul>
+    <li>BLINK: stato <em>ENGAGED</em></li>
+    <li>OFF: stati <em>DISENGAGED/OUT OF ORDER</em></li>
+</ul>
+
+<p>
+Essendo questo un componente passivo dotato di stato, pensiamo sia importante modellare il led come POJO, avente una variabile booleana blink che ne rappresenta lo stato (true = engaged, false = disengaged/out of order).
+Il led può assere acceso/spento tramite i metodi blink() e off(). Il suo stato può essere verificato tramite il metodo boolean isBlinking().
+</p>
+
+<p>Come anche per hold, pensiamo sia poi necessario "incapsulare" questo POJO rappresentate lo stato all'interno di un attore
+    <em>ledActor</em> per rispettare la direzione orientata ai microservizi del problema.
+</p>
+
+<pre>
+public class Led(){
+    private boolean blink = false;
+
+    public void blink(){
+        blink = true;
+    }
+
+    public void off(){
+        blink = false;
+    }
+
+    public boolean isBlinking(){
+        return blink;
+    }
+}
+
+QActor ledActor context ctx_sensor {
+
+    [#
+        var ledObj : Led? = null
+    #]
+
+    State s0 initial {
+
+    }
+}
+</pre>
+
+
+<h2>Il core business</h2>
+<p>
+    Il core business di questa applicazione sarà................................................
+</p>
+
+
+<h2>Architettura Logica del Sistema</h2>
+<p>
+Definiamo una prima architettura logica del sistema, 
+composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <bc>webGUI</bc>, <bc>robotsmart</bc>, ognuno con il proprio contesto.
+</p>
+<a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint0/src/sprint0.qak">Link ad architettura QAK</a><br><br>
+<img src="img/arch0.png" width="50%">
+
+<h2>Componenti da Sviluppare</h2>
+<h3>Da sviluppare</h3>
+<ul>
+    <li><bc>hold</bc> : Sprint 1 (gestione mappa e slot)</li>
+    <li><bc>cargoservice</bc>: Sprint 1 (core business, gestione stati)</li>
+    <li><bc>sensor</bc> : Sprint 2 (attività del sensore virtuale/hardware)</li>
+    <li><bc>webGUI</bc> : Sprint 3 (interfaccia Web)</li>
+    <li><bc>pushbutton</bc> : Sprint 3 (input virtuale in WebGUI)</li>
+    <li><bc>display</bc> : Sprint 3 (output verso webGUI)</li>
+    <li><bc>led</bc> : Sprint 3 (notifica visiva virtuale/hardware)</li>
+</ul>
+
+<h3>Forniti dal committente</h3>
+<p>
+    Essendo la nostra azienda specializzata in robotica, ci vengono forniti diversi software di controllo del DDR, ognuno con proprietà diverse. <br><br>
+    
+    Abbiamo due implementazioni di robot: 
+    <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=289">VirtualRobot26</a></em> e 
+    <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=319">RobotSmart26</a></em>, queste 
+    si differenziano perchè virtual robot implementa solo movimenti "base", come muovere il robot in avanti o farlo ruotare,
+     mentre robot smart implementa anche il concetto di stato locale e di planning.<br><br>
+    
+    Inoltre abbiamo anche altri due componenti, ovvero 
+    <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=299">RobotObj26</a></em> e 
+    <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=303">RobotService26</a></em>. 
+    La prima espone i comandi del robot tramite Interfaccia Java, quindi permettendo di vedere il robot come un POJO, 
+    mentre l'altra rende il robot un attore QAK, quindi un servizio. Entrambe servono a esporre comandi di alto livello
+    riducendo l'abstraction gap e incapsulando il funzionamento del robot rendendolo trasparente al programmatore<br><br>
+    
+    Sarà compito dei progettisti decidere se e quale di questi software potrà essere usato per il progetto.<br><br>
+
+
+    <br><br>L'altro componente fornito è <bc>WEnv</bc>, un ambiente virtuale che simula la Hold e il robot, 
+    e ci permette di sviluppare l'interezza del sistema senza dipendere da un'implementazione fisica. <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=289">(Documentazione WEnv)</a>.
+    <br>Questo ambiente virtuale è servito con Docker.
+</p>
+
+
+<h2>Test Plans</h2>
+
+<p>
+I test sono scritti in Java (JUnit).
+Sono dei test preliminari, verranno implementati nello Sprint1 e potrebbero cambiare sintatticamente.<br>
+Prima di ogni test il sistema è avviato e <bc>cargoservice</bc> è raggiungibile.<br>
+<bc>sensor</bc> è simulato: i diversi messaggi vengono iniettati direttamente dal tester, mentre uno
+<em>stub</em> di sensor risponde alle richieste di presenza del carico.<br>
+I messaggi scambiati sono definiti e descritti nella prima architettura QAK del nostro sistema (link al file su github).
+</p>
+
+<h4>T01: Richiesta accettata - ENGAGED</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in DISENGAGED, almeno uno slot1-4 libero.<br/>
+<b>Atteso:</b> cargoservice risponde <tt>load_accepted(slotN)</tt> e passa a ENGAGED.
+</div>
+<pre><code>@Test
+public void testT01() throws Exception {
+    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp = conn.request(req);
+
+    assertTrue("T01: load_accepted con slot assegnato", resp.contains("load_accepted"));
+}
+</code></pre>
+
+<h4>T02: Container depositato - normale operazione - DISENGAGED (normale flow di operazione)</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in ENGAGED (T01 eseguito), IOPort libera al momento della richiesta.<br/>
+<b>Atteso:</b> dopo <tt>containerIn</tt> da sensor, cargorobot esegue il ciclo
+IOPORT - SLOT5 - slotN, il sistema torna in DISENGAGED con lo slot occupato.
+</div>
+<pre><code>@Test
+public void testT02() throws Exception {
+
+    //porta il sistema in ENGAGED
+    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    conn.request(req);
+
+    //simula sensor: container rilevato all'IOPort (dispatch asincrono)
+    conn.forward(CommUtils.buildDispatch("tester", "containerIn", "containerIn(x)", "cargoservice").toString());
+
+    CommUtils.delay(8000); //attendo finisca la normale operazione
+
+    //una nuova richiesta deve essere accettata (sistema tornato in DISENGAGED)
+    String req2 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp2 = conn.request(req2);
+
+    assertTrue("T02: sistema tornato in DISENGAGED dopo carico", resp2.contains("load_accepted"));
+}
+</code></pre>
+
+<h4>T03: Timeout in ENGAGED - DISENGAGED - slot liberato</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in ENGAGED, un solo slot libero.<br/>
+<b>Atteso:</b> allo scadere dei 30s senza <tt>containerIn</tt>, il sistema torna in DISENGAGED
+con lo slot liberato (prima riservato) e risponde <tt>retrylater</tt> alla richiesta originale.
+</div>
+<pre><code>@Test
+public void testT03() throws Exception {
+    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp = conn.request(req);
+    assertTrue("T03 setup: richiesta accettata", resp.contains("load_accepted"));
+
+    //non piazzo un container, attendo scadenza timer (5 secondi per testare)
+    CommUtils.delay(6000);
+
+    //lo slot deve essere stato liberato
+    String req2 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp2 = conn.request(req2);
+
+    assertTrue("T03: slot liberato dopo timeout", resp2.contains("load_accepted"));
+}
+</code></pre>
+
+<h4>T04: Hold piena - load_rejected</h4>
+<div class="remark">
+<b>Precondizione:</b> tutti gli slot1-4 occupati.<br/>
+<b>Atteso:</b> cargoservice risponde <tt>load_rejected</tt>.
+</div>
+<pre><code>@Test
+public void testT04() throws Exception {
+
+    //invio richiesta di carico
+    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp = conn.request(req);
+
+    assertTrue("T04: hold piena - load_rejected", resp.contains("load_rejected"));
+}
+</code></pre>
+
+<h4>T05: Sensor guasto - Out of Service - retrylater</h4>
+<div class="remark">
+<b>Precondizione:</b> sistema in DISENGAGED.<br/>
+<b>Atteso:</b> dopo <tt>sensorError</tt> da sensor il sistema entra in OUT_OF_SERVICE,
+le richieste successive ricevono <tt>retrylater(out_of_service)</tt>.
+</div>
+<pre><code>@Test
+public void testT05() throws Exception {
+    //simulo sensor guasto
+    conn.forward(CommUtils.buildDispatch("tester", "sensorError", "sensorError(x)", "cargoservice").toString());
+    CommUtils.delay(300);
+
+    //invio richiesta di carico
+    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp = conn.request(req);
+
+    assertTrue("T05: out_of_service - retrylater", resp.contains("retrylater"));
+}
+</code></pre>
+
+<h4>T06: Container già presente all'IOPort - carico immediato</h4>
+<div class="remark">
+<b>Precondizione:</b> container depositato <em>prima</em> della load_request
+(il dispatch <tt>containerIn</tt> è fire and forget ed è già andato perso).<br/>
+<b>Atteso:</b> alla load_request, cargoservice interroga sensor con
+<tt>check_container</tt>, lo stub risponde <tt>container_present</tt>
+e il ciclo di movimentazione parte subito, senza attendere i 30s.
+</div>
+<pre><code>@Test
+public void testT06_ContainerAlreadyAtIoport() throws Exception {
+    //setto lo stub del sensoreservice in stato "container presente"
+    sensorStub.setContainerStatus(true);
+
+    //invio richiesta di carico
+    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp = conn.request(req);
+    assertTrue("T06 setup: richiesta accettata", resp.contains("load_accepted"));
+
+    CommUtils.delay(8000); //attendo finisca l'operazione
+
+    //sistema tornato in DISENGAGED: nuova richiesta accettata
+    sensorStub.setContainerStatus(false);
+    String req2 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
+    String resp2 = conn.request(req2);
+
+    assertTrue("T06: carico avviato con container già presente", resp2.contains("load_accepted"));
+}
+</code></pre>
+
+<h2>Goal Sprint 1</h2>
+
+<p>
+Lo <bc>Sprint 1</bc> ha come obiettivo la realizzazione del core business, per ora senza dipendere da IOPort e dal sensore.
+</p>
+
+<h3>Sottoinsieme di Requisiti (goal Sprint 1)</h3>
+<ul>
+    <li>Implementare <bc>cargoservice</bc></li>
+    <li>Implementare Hold e Slot</li>
+    <li>Implementare la comunicazione con <bc>robotsmart</bc></li>
+    <li>Gestire la riserva degli slot e il ciclo di movimentazione</li>
+    <li>Implementare sensor simulato (stub di sensor)</li>
+    <li>Gestire la verifica della presenza di container presso IOPort</li>
+    <li>Gestire il timeout di 30 secondi per il deposito</li>
+</ul>
+
+<h3>Test da superare in Sprint 1</h3>
+<ul>
+    <li><bc>T01</bc>: Richiesta accettata</li>
+    <li><bc>T02</bc>: Container depositato in tempo</li>
+    <li><bc>T03</bc>: Timeout / DISENGAGED</li>
+    <li><bc>T04</bc>: Hold piena</li>
+    <li><bc>T05</bc>: Sensor guasto / OUT_OF_SERVICE</li>
+    <li><bc>T06</bc>: Container già presente all'IOPort</li>
+</ul>
+
+<h3>Componenti prodotti in Sprint 1</h3>
+<ul>
+    <li><bc>cargoservice</bc></li>
+    <li><bc>Hold</bc> e <bc>Slot</bc></li>
+    <li>Mock <bc>sensor</bc></li>
+</ul>
+
+<h3>Piano di lavoro</h3>
+<ul>
+    <li>Prevediamo circa 20 ore/uomo, su una settimana di lavoro.</li>
+    <li>Francesco si occuperà principalmente del modello QAK.</li>
+    <li>Andrea si occuperà principalmente del testing e stesura del report.</li>
+    <li>Entrambi ci aggiorniamo giornalmente sul lavoro svolto, studiamo e valutiamo i rispettivi lavori.</li>
+</ul>
+<br/><br/>
+</div>
+
+<div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px; font-size: large;">
+    By Andrea Gazzola <img src="img/fotoA.jpg" width="100px"> and Francesco Roffia <img src="img/fotoF.png" width="100px"> <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">
+    GIT repo: https://github.com/FRoffia/ISS_26_Cargoservice</a>
+</div>
+
+</body>
+</html>
