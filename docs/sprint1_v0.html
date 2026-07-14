@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="mystyle.css">
+    <meta charset="UTF-8">
+    <title>Sprint 0</title>
+</head>
+<body>
+    
+    <div id="top">
+        <h1>Sprint 1_v0: analisi del problema ed implementazione di Cargoservice, Cargorobot e la Hold</h1>
+    </div>
+
+    <div class="body">
+    <h2>Punto di partenza</h2>
+    <p>
+        Dall'analisi dei requisiti svolta nello Sprint 0 (LINK), abbiamo definito una architettura iniziale del sistema.
+        (IMMAGINE ARCHITETTURA)
+    </p>
+    <h2>Obbiettivi</h2>
+    <p>
+        L'obbiettivo dello sprint 1 è quello di analizzare il sottoinsieme di requisiti relativi ai componenti cargorobot
+        e cargoservice, effettuandone l'analisi del problema e la progettazione, soffermandoci con importanza sulle interazioni tra di essi.
+
+        i requisiti dello sptin 1 sono iseguenti:
+        <ul>
+            <li>Implementare un sistema in grado di rispondere alle richieste di carico</li>
+            <li>implementare il ciclo di movimentazione del robot, che consiste in:</li>
+            <ol>
+                <li>riservare slot ??? (CHIEDERE A COMMITTENTE)</li>
+                <li>andare all'IO port</li>
+                <li>caricare il container una volta presente</li>
+                <li>spostarsi allo slot 5 per marcare il container</li>
+                <li>spostarsi ad uno slot libero per depositare il container</li>
+                <li>ritornare alla home ??? (CHIEDERE A COMMITTENTE)</li>
+            </ol>
+            <li>implementare un modello della hold che tenga traccia dello stato degli slot (pieni o vuoti)</li>
+        </ul>
+
+        
+
+
+    </p>
+    <h2>Analisi dei Requisiti</h2>
+    <p>
+        L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un documento di analisi dei requisiti approfondito.
+    </p>
+    <h2>Analisi del Problema</h2>
+    <p>
+        Partiamo da cargoservice, che è l'attore principale del sistema: implementa il core-business e si occupa di orchestrare gli altri componenti.
+        Lo sviluppo di questo componente centrale dipenderebbe da altri componenti secondari, quali sensor e pushbutton: 
+        per questo, è necessario implementare una versione mock di questi componenti che possa scambiare messaggi con cargoservice; 
+        verranno poi implementati completamente nei prossimi sprint. Cargoservice sarà già pronto a rispondere ai messaggi veri... etc scrivere meglio...
+        <br><br>
+        Nei requisiti (LINK) è presente una descrizione detagliata del ciclo di movimentazione del cargorobot e dello stato del sistema. 
+        Qui riportiamo l'intera evoluzione del sistema, soffermandoci sui passaggi che hanno bisogno di una analisi del problema più approfondita:
+        <ol>
+            <li>Il cargorobot si trova inizialmente in posizione HOME, e il sistema si trova in stato DISENGAGED</li>
+            <li>L'utente invia una richiesta di carico, alla quale cargorbot risponde con:
+            <ul>
+                <li>load_accepted: se il sistema si trova in stato DISENGAGED e c'è almeno uno slot libero. 
+                    ANALISI: E' necessario che la Hold mantenga lo stato degli slot, ovvero quali sono pieni e quali vuoti. 
+                    Inoltre, dovrà informare cargoservice dell'ID di uno slot libero, che a sua volta invierà a cargorobot per 
+                    sapere dove collocare l'eventuale container</li>
+                <li>load_rejected: se il sistema si trova in stato OUT_OF_SERVICE, causato dal malfunzionamento del sensor 
+                    (nelle modalità descritte dai requisiti (LINK))</li>
+                <li>retrylater: se il sistema si trova in stato ENGAGED, ovvero è già in corso un ciclo di movimentazione</li>
+            </ul>
+            Nel caso di load_rejected e retrylater, il sistema resta in stato DISENGAGED pronto per ricevere una nuova richiesta
+            </li>
+            <li>Nel caso di load_accepted, l'utente ha 30s per posizionare un contianer davanti al sensor alla IOPort. 
+                ANALISI: Qui sorge una considerazione importante: è necessario gestire in modo differnete il caso in cui il container è già presente
+                alla IOPort al momento dell'acettazione del carico, rispetto al caso in cui non sia già presente. Cargoservice dovrà sempre richiedere
+                la presenza del container al sensore non appena accetta il carico; se il container non è presente è necessario scegliere se:
+                <ol>
+                    <li>Cargoservice verifichi periodicamente in modo sincrono (con una request) la presenza del container all IOPort</li>
+                    <li>Il sensor avvisi in modo asincrono (con un event) </li>
+                </ol>
+                Scegliamo la seconda opzione, dato che è la soluzione più logica nel modello a scambio di messaggi.
+            </li>
+        </ol>
+       
+    </p>
+    </div>
+</body>
+</html>
