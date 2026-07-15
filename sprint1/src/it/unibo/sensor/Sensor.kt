@@ -41,12 +41,60 @@ class Sensor ( name: String, scope: CoroutineScope, isconfined: Boolean=false, i
 				}	 
 				state("work") { //this:State
 					action { //it:State
-						CommUtils.outblue("sonar | WORK: measuring...")
+						CommUtils.outblue("mock sonar | working...")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
+					 transition(edgeName="t026",targetState="cargo_present_wait",cond=whenDispatch("mock_cargo_present"))
+					transition(edgeName="t027",targetState="cargo_absent_wait",cond=whenDispatch("mock_cargo_absent"))
+				}	 
+				state("cargo_present_wait") { //this:State
+					action { //it:State
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t028",targetState="state_cargo_present",cond=whenRequest("is_cargo_present"))
+				}	 
+				state("cargo_absent_wait") { //this:State
+					action { //it:State
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t029",targetState="state_cargo_absent",cond=whenRequest("is_cargo_present"))
+				}	 
+				state("state_cargo_present") { //this:State
+					action { //it:State
+						if( checkMsgContent( Term.createTerm("is_cargo_present(X)"), Term.createTerm("is_cargo_present(X)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								answer("is_cargo_present", "cargo_present", "cargo_present(X)"   )  
+								CommUtils.outblue("mock sonar | cargo set to present")
+						}
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
+				}	 
+				state("state_cargo_absent") { //this:State
+					action { //it:State
+						if( checkMsgContent( Term.createTerm("is_cargo_present(X)"), Term.createTerm("is_cargo_present(X)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								answer("is_cargo_present", "cargo_absent", "cargo_absent(X)"   )  
+								CommUtils.outblue("mock sonar | cargo set to absent")
+						}
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 			}
 		}

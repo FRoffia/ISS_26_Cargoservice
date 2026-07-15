@@ -21,7 +21,7 @@ evattr = {
     'color': 'darkgreen',
     'style': 'dotted'
 }
-with Diagram('sprint1Arch', show=False, outformat='png', graph_attr=graphattr) as diag:
+with Diagram('sprintArch', show=False, outformat='png', graph_attr=graphattr) as diag:
   with Cluster('env'):
      sys = Custom('','./qakicons/system.png')
 ### see https://renenyffenegger.ch/notes/tools/Graphviz/attributes/label/HTML-like/index
@@ -31,11 +31,13 @@ with Diagram('sprint1Arch', show=False, outformat='png', graph_attr=graphattr) a
           led=Custom('led','./qakicons/symActorWithobjSmall.png')
           sensor=Custom('sensor','./qakicons/symActorWithobjSmall.png')
           ioport=Custom('ioport','./qakicons/symActorWithobjSmall.png')
-          holdcontroller=Custom('holdcontroller','./qakicons/symActorWithobjSmall.png')
+          hold_controller=Custom('hold_controller','./qakicons/symActorWithobjSmall.png')
      with Cluster('ctxrobotsmart', graph_attr=nodeattr):
-          robotsmart=Custom('robotsmart(ext)','./qakicons/externalQActor.png')
-     cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<reserve_slot<font color="darkgreen"> reserve_ok reserve_fail</font> &nbsp; >',  fontcolor='magenta') >> holdcontroller
+          robotsmart26=Custom('robotsmart26(ext)','./qakicons/externalQActor.png')
+     sys >> Edge( label='container_in', **evattr, decorate='true', fontcolor='darkgreen') >> cargoservice
+     ioport >> Edge(color='magenta', style='solid', decorate='true', label='<load_request<font color="darkgreen"> load_accepted load_rejected retrylater</font> &nbsp; >',  fontcolor='magenta') >> cargoservice
+     cargorobot >> Edge(color='magenta', style='solid', decorate='true', label='<moverobot<font color="darkgreen"> moverobotdone moverobotfailed</font> &nbsp; >',  fontcolor='magenta') >> robotsmart26
+     cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<reserve_slot<font color="darkgreen"> reserve_ok reserve_fail</font> &nbsp; >',  fontcolor='magenta') >> hold_controller
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<is_cargo_present<font color="darkgreen"> cargo_present cargo_absent</font> &nbsp; >',  fontcolor='magenta') >> sensor
-     cargorobot >> Edge(color='magenta', style='solid', decorate='true', label='<moverobot<font color="darkgreen"> moverobotdone moverobotfailed</font> &nbsp; >',  fontcolor='magenta') >> robotsmart
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<handle_cargo_load<font color="darkgreen"> cargo_load_success cargo_load_failed</font> &nbsp; >',  fontcolor='magenta') >> cargorobot
 diag

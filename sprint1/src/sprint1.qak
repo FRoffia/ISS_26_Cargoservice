@@ -17,9 +17,9 @@ Reply    cargo_present     : cargo_present(X) for is_cargo_present
 Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
 
 //evento per quando un container viene inserito nella ioport
-Event    container_in  : container_in(X)
+Dispatch    container_in  : container_in(X)
 
-//request e replies per muovere il robotsmart26
+//request e replies per muovere il robotsmart
 Request  moverobot       : moverobot(TARGETX, TARGETY,STEPTIME)
 Reply    moverobotdone   : moverobotok(ARG)                    for moverobot
 Reply    moverobotfailed : moverobotfailed(PLANDONE, PLANTODO) for moverobot
@@ -29,19 +29,31 @@ Request  handle_cargo_load    : handle_cargo_load(TARGET_SLOT)
 Reply    cargo_load_success   : cargo_load_success(X)          for handle_cargo_load
 Reply    cargo_load_failed    : cargo_load_failed(X)           for handle_cargo_load
 
+//messaggio di errore e di recovery del sensor
+Dispatch sensorError : sensorError(X)
+Dispatch sensorOK    : sensorOK(X)
+
+//messaggi per il testing
+Dispatch mock_cargo_present : mock_cargo_present(X)
+Dispatch mock_cargo_absent : mock_cargo_absent(X)
+Dispatch test_hold_full : test_hold_full(X)
+Dispatch test_hold_empty : test_hold_empty(X)
+Dispatch setDelay : setDelay(X)
 
 Context  ctx_cargoservice ip [host="localhost" port= 8010]
 Context  ctxrobotsmart    ip [host="127.0.0.1" port=8020]
-Context  ctx_sensor       ip [host="127.0.0.2" port=8030]
-Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
+//Context  ctx_sensor       ip [host="127.0.0.2" port=8030]
+//Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
 
-ExternalQActor robotsmart26 context ctxrobotsmart
+ExternalQActor robotsmart context ctxrobotsmart
 
 //attore principale del core business del sistema.
 QActor cargoservice context ctx_cargoservice {
 	
 	[#
-		var Cur_reserved_slot = -1
+		var Cur_reserved_slot = ""
+		var Delay = 30000
+		var DelayLong = 30000L
 	#] 
 	
 	//dai requisiti, gli stati del sistema sono: ENGAGED, DISENGAGED, OUTOFSERVICE
@@ -52,19 +64,32 @@ QActor cargoservice context ctx_cargoservice {
 
 
     State disengaged {
-		println("cargoservice | DISENGAGED: aspetto load_request") color green
+		println("cargoservice | DISENGAGED: waiting for cargo load request") color green
     }
     Transition t0
         whenRequest load_request -> evaluate_request
+        whenMsg sensorError -> outOfService
+        whenMsg setDelay -> set_delay
         
-        
+    State set_delay {
+    	//setting delay for testing
+    	onMsg (setDelay : setDelay(D)){
+    		[# Delay = payloadArg(0).toInt()
+    			DelayLong = Delay.toLong()#
+    		]
+    	}
+    	println("cargoservice | setting delay for testing: $Delay ms") color blue
+    }
+    Goto disengaged
+   
     State evaluate_request{
     	println("cargoservice | checking with hold if a slot is available") color blue
-    	request hold_controller -m reserve_slot : reserve_slot(X)
+    	request holdcontroller -m reserve_slot : reserve_slot(X)
     }
     Transition t0
     	whenReply reserve_ok -> check_ioport
     	whenReply reserve_fail -> load_rejected
+    	whenMsg sensorError -> outOfService
     	
     	
 	State load_rejected{
@@ -86,6 +111,7 @@ QActor cargoservice context ctx_cargoservice {
 			[# 
 				Cur_reserved_slot = payloadArg(0)
 			#]
+			println("cargoservice | Reserved slot: $Cur_reserved_slot")
 		}
 		
 		//richiesta sincrona a ioport per sapere se c'è già un container, in caso rispondo a load request con retrylater
@@ -93,7 +119,8 @@ QActor cargoservice context ctx_cargoservice {
 	}
 	Transition t0
 		whenReply cargo_present -> retry_later
-		whenReply cargo_absent -> wait_for_cargo
+		whenReply cargo_absent -> send_accept
+		whenMsg sensorError -> outOfService
 		
 		
 	State retry_later{
@@ -108,13 +135,20 @@ QActor cargoservice context ctx_cargoservice {
 	Goto disengaged	
 		
 		
-	State wait_for_cargo{
-		//aspetto 30 secondi che arrivi un cargo in ioport, altrimenti torno in disengaged
+	State send_accept{
 		replyTo load_request with load_accepted : load_accepted(X)
+
+	}
+	Goto waitforcargo
+		
+	State waitforcargo{
+		//aspetto 30 secondi che arrivi un cargo in ioport, altrimenti torno in disengaged
+		println("cargoservice | PLACE CARGO AT IOPORT") color red
 	}
 	Transition t0
-		whenTime 30000 -> cargo_timeout
-		whenEvent container_in -> engaged
+		whenTimeVar DelayLong -> cargo_timeout
+		whenMsg container_in -> engaged
+		whenMsg sensorError -> outOfService
 		
 		
 	State cargo_timeout{
@@ -136,17 +170,24 @@ QActor cargoservice context ctx_cargoservice {
     Transition t0
     	whenReply cargo_load_success -> disengaged
     	whenReply cargo_load_failed -> disengaged
+    	whenMsg sensorError -> outOfService
 
 
     State outOfService {
     	//gestisco out of service
+    	println("cargoservice | sensor error: OUT OF SERVICE!") color red
+    	replyTo load_request with retrylater : retrylater(X)
     }
+    Transition t0
+     whenRequest load_request -> outOfService
+     whenMsg sensorOK -> s0
+    
 }
 
 QActor cargorobot context ctx_cargoservice {
 	[#
 		// stato
-		val Step = 330
+		val Step = 335
 		
 		// (y,x)
 		val positions = hashMapOf(
@@ -159,8 +200,8 @@ QActor cargorobot context ctx_cargoservice {
 		    "slot5" 	to arrayOf(2, 5)
 		)
 		
-		var Destination
-		var Target_slot
+		var Destination = ""
+		var Target_slot = ""
 	#]
 
     State s0 initial {
@@ -182,12 +223,13 @@ QActor cargorobot context ctx_cargoservice {
 		//recupero le coordinate di ioport e la raggiungo
 		[#
 			Destination = "io_port"
-			val coords = positions[Destination]
+			val coords = positions[Destination]!!
 			val X = coords[0]
 			val Y = coords[1]
 		#]
 		
-    	request robotsmart26 -m moverobot : moverobot($X, $Y, $Step)
+    	request robotsmart -m moverobot : moverobot($X, $Y, $Step)
+    	println("cargorobot | moving towards io_port...") color green
     }
     Transition t0
     	whenReply moverobotdone -> goto_slot5
@@ -204,15 +246,15 @@ QActor cargorobot context ctx_cargoservice {
     State goto_slot5{
     	//simuliamo tempo di carico del cargo
     	delay 3000
-    	
+    	println("cargorobot | moving towards slot5...") color green
     	[#
 			Destination = "slot5"
-			val coords = positions[Destination]
+			val coords = positions[Destination]!!
 			val X = coords[0]
 			val Y = coords[1]
 		#]
 		
-		request robotsmart26 -m moverobot : moverobot($X, $Y, $Step)
+		request robotsmart -m moverobot : moverobot($X, $Y, $Step)
     }
     Transition t0
     	whenReply moverobotdone -> goto_target_slot
@@ -222,14 +264,14 @@ QActor cargorobot context ctx_cargoservice {
 	State goto_target_slot{
 		//simuliamo tempo di marking del cargo nello slot 5
     	delay 2000
-    	
+    	println("cargorobot | moving towards $Target_slot...") color green
     	[#
-			val coords = positions[Target_slot]
+			val coords = positions[Target_slot]!!
 			val X = coords[0]
 			val Y = coords[1]
 		#]
 		
-		request robotsmart26 -m moverobot : moverobot($X, $Y, $Step)
+		request robotsmart -m moverobot : moverobot($X, $Y, $Step)
 	}
 	Transition t0
     	whenReply moverobotdone -> goto_home
@@ -238,16 +280,16 @@ QActor cargorobot context ctx_cargoservice {
     	
 	State goto_home{
 		//simuliamo tempo di scarico del cargo
-    	delay 3000
-    	
+    	delay 2000
+    	println("cargorobot | moving towards home...") color green
     	[#
 			Destination = "home"
-			val coords = positions[Destination]
+			val coords = positions[Destination]!!
 			val X = coords[0]
 			val Y = coords[1]
 		#]
 		
-		request robotsmart26 -m moverobot : moverobot($X, $Y, $Step)
+		request robotsmart -m moverobot : moverobot($X, $Y, $Step)
 	}
 	Transition t0
     	whenReply moverobotdone -> cargo_load_done
@@ -260,80 +302,109 @@ QActor cargorobot context ctx_cargoservice {
 	Goto s0
 }
 
-QActor led context ctx_sensor {
+QActor led context ctx_cargoservice {
     State s0 initial {}
     Goto off
     
     State off {
-        println("led | DISENGAGED: led off")
+        println("led | DISENGAGED: led off") color green
     }
     
     State on {
-    	println("led | ENGAGED o OUT OF ORDER: led on")
+    	println("led | ENGAGED or OUT OF ORDER: led on")
     }
 }
 
-QActor sensor context ctx_sensor {
+QActor sensor context ctx_cargoservice {
     State s0 initial {}
     Goto work
     State work {
-        println("sonar | WORK: measuring...") color blue
+        println("mock sonar | working...") color blue
     }
+    Transition t0
+    	whenMsg mock_cargo_present -> cargo_present_wait
+    	whenMsg mock_cargo_absent -> cargo_absent_wait
+    	
+    State cargo_present_wait {
+    	
+    }
+    Transition t0
+    	whenRequest is_cargo_present -> state_cargo_present
+    	
+    State cargo_absent_wait {
+    	
+    }
+    Transition t0
+    	whenRequest is_cargo_present -> state_cargo_absent
+    	
+   State state_cargo_present {
+   		onMsg(is_cargo_present : is_cargo_present(X)){
+    		replyTo is_cargo_present with cargo_present : cargo_present(X)
+    		println("mock sonar | cargo set to present") color blue
+    	}
+   }
+   Goto s0
+    
+    State state_cargo_absent {
+    	onMsg(is_cargo_present : is_cargo_present(X)){
+    		replyTo is_cargo_present with cargo_absent : cargo_absent(X)
+    		println("mock sonar | cargo set to absent") color blue
+    	}
+    	
+    }
+    Goto s0
+    
 }
 
-QActor ioport context ctx_ioport {
+QActor ioport context ctx_cargoservice {
 	State s0 initial {
 		//in attesa della pressione del pushbutton
 	}
 	Goto pushbutton
 	
 	State pushbutton {
-		println("pushbutton pressed")
-		request cargoservice -m load_request : load_request(X)
+	
 	}
-	Transition t0
-		whenReply load_accepted -> accepted
-		whenReply load_rejected -> rejected
-		whenReply retrylater -> retrylater
 		
 	State accepted {
 		println("ioport | DISPLAY: load accepted") color green
 	}
-	Goto s0
+	
 	
 	State retrylater {
 		println("ioport | DISPLAY: retry later") color yellow
 	}
-	Goto s0
+	
 	
 	State rejected {
 		println("ioport | DISPLAY: load rejected") color red
 	}
-	Goto s0
+	
 	
 }
 
-QActor hold_controller context ctx_cargoservice{
+QActor holdcontroller context ctx_cargoservice{
 	[#
-		var hold = new Hold(4)
+		var hold = Hold(4)
 	#]
 	
 	State s0 initial{
-		println("hold_controller | working.....") color blue
+		
 	}
 	Transition t0
 		whenRequest reserve_slot -> look_for_empty_slot
-	
+		whenMsg test_hold_full -> set_full
+		whenMsg test_hold_empty -> set_empty
 	
 	State look_for_empty_slot{
 		[#
 			val slotsOccupation = hold.getSlotsOccupation()
-			var emptySlot = "no"
+			var EmptySlot = "no"
 			
 			for ((i,occupation) in slotsOccupation.withIndex()) {
     			if(!occupation){
-    				emptySlot = "slot"+(i+1)
-    				hold.occupySlot(i)
+    				EmptySlot = "slot"+(i+1)
+    				hold.occupySlot(i+1)
     				break
     			}
 			}
@@ -341,11 +412,34 @@ QActor hold_controller context ctx_cargoservice{
 		#]
 		
 		//Se trovo slot mando risposta positiva, altrimenti negativa
-		if [# !emptySlot.equals("no") #] {
-			replyTo reserve_slot with reserve_ok : reserve_ok(emptySlot)
+		if [# !EmptySlot.equals("no") #] {
+			replyTo reserve_slot with reserve_ok : reserve_ok($EmptySlot)
 		} else {
 			replyTo reserve_slot with reserve_fail : reserve_fail(X)
 		}
 	}
 	Goto s0
+	
+	State set_full{
+		println("hold | test mode: set hold to full") color blue
+		
+		[#	hold.occupySlot(1)
+			hold.occupySlot(2)
+			hold.occupySlot(3)
+			hold.occupySlot(4)
+		#]
+	}
+	Goto s0
+	
+	State set_empty{
+		println("hold | test mode: set hold to empty") color blue
+		
+		[#	hold.freeSlot(1)
+			hold.freeSlot(2)
+			hold.freeSlot(3)
+			hold.freeSlot(4)
+		#]
+	}
+	Goto s0
+
 }

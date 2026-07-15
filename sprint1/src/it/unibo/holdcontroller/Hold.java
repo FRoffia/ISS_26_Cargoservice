@@ -1,15 +1,15 @@
-package it.unibo.hold_controller
+package it.unibo.holdcontroller;
 
-public Class Hold{         
-    private int number_of_slots n;
-    private Slot slots[];
+public class Hold{         
+    private int n;
+    private Slot[] slots;
 
     public Hold(int n){
         this.n = n;
         slots = new Slot[n];
 
         for(int i = 0; i < n; i++){
-            slots[i] = new Slot("slot"+(i+1));
+            slots[i] = new Slot();
         }
     }
 
@@ -26,13 +26,12 @@ public Class Hold{
     }
     
     public boolean[] getSlotsOccupation() {
-    	boolean[n] slotsOccupation;
-    	
-    	for(int i  = 0; i < n ; i++) {
-    		slotsOccupation[i] = slots[i].isOccupied();
-    	}
-    	
-    	return slotsOccupation;
+        boolean[] slotsOccupation = new boolean[n];
+        
+        for(int i = 0; i < n; i++) {
+            slotsOccupation[i] = slots[i].isOccupied();
+        }
+        
+        return slotsOccupation;
     }
 }
-

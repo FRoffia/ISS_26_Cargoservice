@@ -41,16 +41,11 @@ class Ioport ( name: String, scope: CoroutineScope, isconfined: Boolean=false, i
 				}	 
 				state("pushbutton") { //this:State
 					action { //it:State
-						CommUtils.outblack("pushbutton pressed")
-						request("load_request", "load_request(X)" ,"cargoservice" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t018",targetState="accepted",cond=whenReply("load_accepted"))
-					transition(edgeName="t019",targetState="rejected",cond=whenReply("load_rejected"))
-					transition(edgeName="t020",targetState="retrylater",cond=whenReply("retrylater"))
 				}	 
 				state("accepted") { //this:State
 					action { //it:State
@@ -60,7 +55,6 @@ class Ioport ( name: String, scope: CoroutineScope, isconfined: Boolean=false, i
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 				state("retrylater") { //this:State
 					action { //it:State
@@ -70,7 +64,6 @@ class Ioport ( name: String, scope: CoroutineScope, isconfined: Boolean=false, i
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 				state("rejected") { //this:State
 					action { //it:State
@@ -80,7 +73,6 @@ class Ioport ( name: String, scope: CoroutineScope, isconfined: Boolean=false, i
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 			}
 		}

@@ -30,7 +30,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
 		
-				var Cur_reserved_slot = -1
+				var Cur_reserved_slot = ""
+				var Delay = 30000
+				var DelayLong = 30000L
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -43,25 +45,43 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("disengaged") { //this:State
 					action { //it:State
-						CommUtils.outgreen("cargoservice | DISENGAGED: aspetto load_request")
+						CommUtils.outgreen("cargoservice | DISENGAGED: waiting for cargo load request")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
 					 transition(edgeName="t00",targetState="evaluate_request",cond=whenRequest("load_request"))
+					transition(edgeName="t01",targetState="outOfService",cond=whenDispatch("sensorError"))
+					transition(edgeName="t02",targetState="set_delay",cond=whenDispatch("setDelay"))
 				}	 
-				state("evaluate_request") { //this:State
+				state("set_delay") { //this:State
 					action { //it:State
-						CommUtils.outblue("cargoservice | checking with hold if a slot is available")
-						request("reserve_slot", "reserve_slot(X)" ,"hold_controller" )  
+						if( checkMsgContent( Term.createTerm("setDelay(X)"), Term.createTerm("setDelay(D)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 Delay = payloadArg(0).toInt()
+								    			DelayLong = Delay.toLong() 
+						}
+						CommUtils.outblue("cargoservice | setting delay for testing: $Delay ms")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t01",targetState="check_ioport",cond=whenReply("reserve_ok"))
-					transition(edgeName="t02",targetState="load_rejected",cond=whenReply("reserve_fail"))
+					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+				}	 
+				state("evaluate_request") { //this:State
+					action { //it:State
+						CommUtils.outblue("cargoservice | checking with hold if a slot is available")
+						request("reserve_slot", "reserve_slot(X)" ,"holdcontroller" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t03",targetState="check_ioport",cond=whenReply("reserve_ok"))
+					transition(edgeName="t04",targetState="load_rejected",cond=whenReply("reserve_fail"))
+					transition(edgeName="t05",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("load_rejected") { //this:State
 					action { //it:State
@@ -82,6 +102,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 						                        currentMsg.msgContent()) ) { //set msgArgList
 								 
 												Cur_reserved_slot = payloadArg(0)
+								CommUtils.outblack("cargoservice | Reserved slot: $Cur_reserved_slot")
 						}
 						request("is_cargo_present", "is_cargo_present(X)" ,"sensor" )  
 						//genTimer( actor, state )
@@ -89,8 +110,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t03",targetState="retry_later",cond=whenReply("cargo_present"))
-					transition(edgeName="t04",targetState="wait_for_cargo",cond=whenReply("cargo_absent"))
+					 transition(edgeName="t06",targetState="retry_later",cond=whenReply("cargo_present"))
+					transition(edgeName="t07",targetState="send_accept",cond=whenReply("cargo_absent"))
+					transition(edgeName="t08",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("retry_later") { //this:State
 					action { //it:State
@@ -105,18 +127,29 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					}	 	 
 					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
 				}	 
-				state("wait_for_cargo") { //this:State
+				state("send_accept") { //this:State
 					action { //it:State
 						answer("load_request", "load_accepted", "load_accepted(X)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
-				 	 		stateTimer = TimerActor("timer_wait_for_cargo", 
-				 	 					  scope, context!!, "local_tout_"+name+"_wait_for_cargo", 30000.toLong() )  //OCT2023
 					}	 	 
-					 transition(edgeName="t05",targetState="cargo_timeout",cond=whenTimeout("local_tout_"+name+"_wait_for_cargo"))   
-					transition(edgeName="t06",targetState="engaged",cond=whenEvent("container_in"))
+					 transition( edgeName="goto",targetState="waitforcargo", cond=doswitch() )
+				}	 
+				state("waitforcargo") { //this:State
+					action { //it:State
+						CommUtils.outred("cargoservice | PLACE CARGO AT IOPORT")
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+				 	 		stateTimer = TimerActor("timer_waitforcargo", 
+				 	 					  scope, context!!, "local_tout_"+name+"_waitforcargo", DelayLong )  //OCT2023
+					}	 	 
+					 transition(edgeName="t09",targetState="cargo_timeout",cond=whenTimeout("local_tout_"+name+"_waitforcargo"))   
+					transition(edgeName="t010",targetState="engaged",cond=whenDispatch("container_in"))
+					transition(edgeName="t011",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("cargo_timeout") { //this:State
 					action { //it:State
@@ -139,16 +172,21 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t07",targetState="disengaged",cond=whenReply("cargo_load_success"))
-					transition(edgeName="t08",targetState="disengaged",cond=whenReply("cargo_load_failed"))
+					 transition(edgeName="t012",targetState="disengaged",cond=whenReply("cargo_load_success"))
+					transition(edgeName="t013",targetState="disengaged",cond=whenReply("cargo_load_failed"))
+					transition(edgeName="t014",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("outOfService") { //this:State
 					action { //it:State
+						CommUtils.outred("cargoservice | sensor error: OUT OF SERVICE!")
+						answer("load_request", "retrylater", "retrylater(X)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
+					 transition(edgeName="t015",targetState="outOfService",cond=whenRequest("load_request"))
+					transition(edgeName="t016",targetState="s0",cond=whenDispatch("sensorOK"))
 				}	 
 			}
 		}

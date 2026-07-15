@@ -31,7 +31,7 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
 		
 				// stato
-				val Step = 330
+				val Step = 335
 				
 				// (y,x)
 				val positions = hashMapOf(
@@ -44,8 +44,8 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 				    "slot5" 	to arrayOf(2, 5)
 				)
 				
-				var Destination
-				var Target_slot
+				var Destination = ""
+				var Target_slot = ""
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -55,7 +55,7 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t09",targetState="goto_ioport",cond=whenRequest("handle_cargo_load"))
+					 transition(edgeName="t017",targetState="goto_ioport",cond=whenRequest("handle_cargo_load"))
 				}	 
 				state("goto_ioport") { //this:State
 					action { //it:State
@@ -66,17 +66,18 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 						}
 						
 									Destination = "io_port"
-									val coords = positions[Destination]
+									val coords = positions[Destination]!!
 									val X = coords[0]
 									val Y = coords[1]
-						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
+						CommUtils.outgreen("cargorobot | moving towards io_port...")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t010",targetState="goto_slot5",cond=whenReply("moverobotdone"))
-					transition(edgeName="t011",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t018",targetState="goto_slot5",cond=whenReply("moverobotdone"))
+					transition(edgeName="t019",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("handle_move_error") { //this:State
 					action { //it:State
@@ -91,52 +92,55 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 				state("goto_slot5") { //this:State
 					action { //it:State
 						delay(3000) 
+						CommUtils.outgreen("cargorobot | moving towards slot5...")
 						
 									Destination = "slot5"
-									val coords = positions[Destination]
+									val coords = positions[Destination]!!
 									val X = coords[0]
 									val Y = coords[1]
-						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t012",targetState="goto_target_slot",cond=whenReply("moverobotdone"))
-					transition(edgeName="t013",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t020",targetState="goto_target_slot",cond=whenReply("moverobotdone"))
+					transition(edgeName="t021",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("goto_target_slot") { //this:State
 					action { //it:State
 						delay(2000) 
+						CommUtils.outgreen("cargorobot | moving towards $Target_slot...")
 						
-									val coords = positions[Target_slot]
+									val coords = positions[Target_slot]!!
 									val X = coords[0]
 									val Y = coords[1]
-						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t014",targetState="goto_home",cond=whenReply("moverobotdone"))
-					transition(edgeName="t015",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t022",targetState="goto_home",cond=whenReply("moverobotdone"))
+					transition(edgeName="t023",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("goto_home") { //this:State
 					action { //it:State
-						delay(3000) 
+						delay(2000) 
+						CommUtils.outgreen("cargorobot | moving towards home...")
 						
 									Destination = "home"
-									val coords = positions[Destination]
+									val coords = positions[Destination]!!
 									val X = coords[0]
 									val Y = coords[1]
-						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t016",targetState="cargo_load_done",cond=whenReply("moverobotdone"))
-					transition(edgeName="t017",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t024",targetState="cargo_load_done",cond=whenReply("moverobotdone"))
+					transition(edgeName="t025",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("cargo_load_done") { //this:State
 					action { //it:State

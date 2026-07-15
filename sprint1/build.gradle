@@ -1,19 +1,28 @@
 /*
 ================================================================================
-build2025Starting.gradle
+build2025.gradle
 GENERATED ONLY ONCE
 ================================================================================
 */
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
-    id 'application'  //include java
+    id 'application'
+    id 'java'
     id 'eclipse'
 
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id "org.jetbrains.kotlin.jvm" version "1.9.22"
+    
+    //Per poter usare qakfacadegui23-1.0 che usa Spring
+    //id 'org.springframework.boot' version '2.7.16'
+    //id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    
+    //Per poter usare javafx
+    //id 'org.openjfx.javafxplugin' version '0.1.0'
 }
 
 version '1.0'
+ 
 
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(17))
@@ -25,10 +34,10 @@ kotlin {
 }
 
 repositories {
-    // Use Maven Central for resolving dependencies.
     mavenCentral()
     flatDir {   dirs '../unibolibs'	 }
 }
+ 
 
 dependencies {
     // Align versions of all Kotlin components
@@ -45,6 +54,8 @@ dependencies {
 
     // Use the Kotlin JUnit integration.
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:1.9.22"
+    
+    testImplementation 'junit:junit:4.13.2'
 
     /* COROUTINES ******************************************************************************* */
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core
@@ -52,10 +63,6 @@ dependencies {
     // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core-jvm
     implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core-jvm', version: "$kotlinVersion"
 
-	//SOCKET.IO (for WEnv)
-    implementation group: 'javax.websocket', name: 'javax.websocket-api', version: '1.1'
-    //javax.websocket api is only the specification
-    implementation group: 'org.glassfish.tyrus.bundles', name: 'tyrus-standalone-client', version: '1.9'
 
 	//HTTP
     implementation 'org.apache.httpcomponents:httpclient:4.5'
@@ -83,11 +90,6 @@ dependencies {
 
     /* LOG4J ***************************************************************************** */    
    implementation 'ch.qos.logback:logback-classic:1.2.11'  //vs.1.5.7     1.2.11 (app1.log ok)     1.4.11
-   
-   /* Elasticsearch   */
-    // https://mvnrepository.com/artifact/net.logstash.logback/logstash-logback-encoder
-	implementation("net.logstash.logback:logstash-logback-encoder:7.3")  //7.3 permette di usare 1.2.11
-
 
     /* HTTP ******************************************************************************** */
     // https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient
@@ -95,43 +97,52 @@ dependencies {
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
 
+    //MONGODB
+    // https://mvnrepository.com/artifact/org.mongodb/mongo-java-driver
+    implementation group: 'org.mongodb', name: 'mongo-java-driver', version: '3.12.14'
+
+    /* AIMA ****************************************** */
+ 	//PLANNER  
+    //implementation name: 'unibo.planner23-1.0'
+    //implementation group: 'com.googlecode.aima-java', name: 'aima-core', version: '3.0.0'
 
     /* UNIBO *********************************************************************************/
     implementation name: 'uniboInterfaces'
     implementation name: '2p301'
 	implementation name: 'unibo.qakactor23-5.0'
-    implementation name: 'unibo.basicomm23-1.0' 
+    implementation name: 'unibo.basicomm23-1.0'
+
+
+    
+    
 }
-/*	//To reproduce gradle dir structure: no more
+
 sourceSets {
     main {
         java {
-            srcDirs = ['src/main/java']
-        }
-        resources {
-            srcDirs = ['src/main/resources']
-        }
-    }
-    test{
-        java {
-            srcDirs += ['src/test/java']
-        }    
-        resources {
-            srcDirs = ['src/test/resources']
+            srcDir 'utils'
+            srcDir 'src'   // Importante per i file generati Qak
+            exclude 'main/**'
+            exclude 'test/**'
         }
     }
- } 
-*/
+}  
+
+/*
 eclipse {
     classpath {
         sourceSets -= [sourceSets.main, sourceSets.test]	
     }	
  }
+*/
 
+tasks.withType(Copy).configureEach {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
 
 application {
     //Define the main class for the application.
-    mainClassName    = 'TODO'
+    mainClassName    = 'it.unibo.ctx_cargoservice.MainCtx_cargoserviceKt'
 }
  
  jar {
@@ -158,7 +169,6 @@ distributions {
         contents { 
              from './sprint1.pl'
              from './sysRules.pl'
-             from './facadeConfig.json'
         }
     }
 } 
@@ -167,6 +177,15 @@ task run0(type: JavaExec) {
     group = "Execution"
     description = "Run the main class with JavaExecTask"
     classpath = sourceSets.main.runtimeClasspath
-    main = 'TODO'
+    main = 'it.unibo.ctx_cargoservice.MainCtx_cargoserviceKt'
 }
 
+/*
+//TODO
+tasks.register('copyReport', Copy) {
+	println("copyReport")
+    from layout.buildDirectory.file("resources/logback.xml")
+    into layout.buildDirectory.dir("toArchive")
+}
+*/
+//gradlew run --warning-mode all
