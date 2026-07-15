@@ -29,24 +29,124 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
+		
+				// stato
+				val Step = 330
+				
+				// (y,x)
+				val positions = hashMapOf(
+					"home"    	to arrayOf(0, 0),
+					"io_port" 	to arrayOf(4, 0),
+				    "slot1"   	to arrayOf(1, 1),
+				    "slot2" 	to arrayOf(1, 4),
+				    "slot3" 	to arrayOf(3, 1),
+				    "slot4" 	to arrayOf(3, 4),
+				    "slot5" 	to arrayOf(2, 5)
+				)
+				
+				var Destination
+				var Target_slot
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
+						CommUtils.outblue("cargorobot | waiting for cargo load request")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="work", cond=doswitch() )
+					 transition(edgeName="t09",targetState="goto_ioport",cond=whenRequest("handle_cargo_load"))
 				}	 
-				state("work") { //this:State
+				state("goto_ioport") { //this:State
 					action { //it:State
-						CommUtils.outblack("cargorobot | WORKING: moving containers from IOPort to slot5, then to reserved slot")
+						if( checkMsgContent( Term.createTerm("handle_cargo_load(TARGET_SLOT)"), Term.createTerm("handle_cargo_load(TARGET_SLOT)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 
+												Target_slot = payloadArg(0)
+						}
+						
+									Destination = "io_port"
+									val coords = positions[Destination]
+									val X = coords[0]
+									val Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
+					 transition(edgeName="t010",targetState="goto_slot5",cond=whenReply("moverobotdone"))
+					transition(edgeName="t011",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("handle_move_error") { //this:State
+					action { //it:State
+						CommUtils.outred("cargorobot | move error, could not complete cargo load")
+						answer("handle_cargo_load", "cargo_load_failed", "cargo_load_failed(X)"   )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+				}	 
+				state("goto_slot5") { //this:State
+					action { //it:State
+						delay(3000) 
+						
+									Destination = "slot5"
+									val coords = positions[Destination]
+									val X = coords[0]
+									val Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t012",targetState="goto_target_slot",cond=whenReply("moverobotdone"))
+					transition(edgeName="t013",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("goto_target_slot") { //this:State
+					action { //it:State
+						delay(2000) 
+						
+									val coords = positions[Target_slot]
+									val X = coords[0]
+									val Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t014",targetState="goto_home",cond=whenReply("moverobotdone"))
+					transition(edgeName="t015",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("goto_home") { //this:State
+					action { //it:State
+						delay(3000) 
+						
+									Destination = "home"
+									val coords = positions[Destination]
+									val X = coords[0]
+									val Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart26" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t016",targetState="cargo_load_done",cond=whenReply("moverobotdone"))
+					transition(edgeName="t017",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("cargo_load_done") { //this:State
+					action { //it:State
+						answer("handle_cargo_load", "cargo_load_success", "cargo_load_success(X)"   )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 			}
 		}

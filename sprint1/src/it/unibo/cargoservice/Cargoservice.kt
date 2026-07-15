@@ -29,6 +29,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
+		
+				var Cur_reserved_slot = -1
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -47,16 +49,98 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t00",targetState="engaged",cond=whenRequest("load_request"))
+					 transition(edgeName="t00",targetState="evaluate_request",cond=whenRequest("load_request"))
 				}	 
-				state("engaged") { //this:State
+				state("evaluate_request") { //this:State
 					action { //it:State
+						CommUtils.outblue("cargoservice | checking with hold if a slot is available")
+						request("reserve_slot", "reserve_slot(X)" ,"hold_controller" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t01",targetState="check_ioport",cond=whenReply("reserve_ok"))
+					transition(edgeName="t02",targetState="load_rejected",cond=whenReply("reserve_fail"))
+				}	 
+				state("load_rejected") { //this:State
+					action { //it:State
+						 
+									val Error = "No slots available, load is rejected."
+						CommUtils.outred("cargoservice | $Error")
+						answer("load_request", "load_rejected", "load_rejected($Error)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
 					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+				}	 
+				state("check_ioport") { //this:State
+					action { //it:State
+						if( checkMsgContent( Term.createTerm("reserve_ok(N)"), Term.createTerm("reserve_ok(SLOT)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 
+												Cur_reserved_slot = payloadArg(0)
+						}
+						request("is_cargo_present", "is_cargo_present(X)" ,"sensor" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t03",targetState="retry_later",cond=whenReply("cargo_present"))
+					transition(edgeName="t04",targetState="wait_for_cargo",cond=whenReply("cargo_absent"))
+				}	 
+				state("retry_later") { //this:State
+					action { //it:State
+						 
+									val Error = "IOPort is already occupied by a cargo, retry later."
+						CommUtils.outred("cargoservice | $Error")
+						answer("load_request", "retrylater", "retrylater($Error)"   )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+				}	 
+				state("wait_for_cargo") { //this:State
+					action { //it:State
+						answer("load_request", "load_accepted", "load_accepted(X)"   )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+				 	 		stateTimer = TimerActor("timer_wait_for_cargo", 
+				 	 					  scope, context!!, "local_tout_"+name+"_wait_for_cargo", 30000.toLong() )  //OCT2023
+					}	 	 
+					 transition(edgeName="t05",targetState="cargo_timeout",cond=whenTimeout("local_tout_"+name+"_wait_for_cargo"))   
+					transition(edgeName="t06",targetState="engaged",cond=whenEvent("container_in"))
+				}	 
+				state("cargo_timeout") { //this:State
+					action { //it:State
+						 
+									val Error = "No cargo has arrived in IOPort, timeout."
+						CommUtils.outred("cargoservice | $Error")
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+				}	 
+				state("engaged") { //this:State
+					action { //it:State
+						CommUtils.outblue("cargoservice | System engaged, load operation is being handled by cargorobot")
+						request("handle_cargo_load", "handle_cargo_load($Cur_reserved_slot)" ,"cargorobot" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t07",targetState="disengaged",cond=whenReply("cargo_load_success"))
+					transition(edgeName="t08",targetState="disengaged",cond=whenReply("cargo_load_failed"))
 				}	 
 				state("outOfService") { //this:State
 					action { //it:State
