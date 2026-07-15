@@ -136,29 +136,123 @@
     <li>Il <bc>cargorobot</bc> ritorna alla posizione HOME e il sistema torna nello stato <tt>DISENGAGED</tt>,
         pronto per una nuova richiesta.</li>
 </ol>
-        <h3>Nuovi messaggi</h3>
-       <p>Dalla analisi del punto 3 emerge la necessità di inreodurre nuovi messaggi, oltre a quelli definiti nello Sprint 0.</p> 
+        
+       <p>Dalla analisi del punto 3 emerge la necessità di introdurre nuovi messaggi, oltre a quelli definiti nello Sprint 0:<br> 
 
-        <p>
+       
     Una request per verificare se un container è già presente alla IOPort, da inviare non appena la richiesta di
     carico viene accettata:
 </p>
         <pre>
     <code>  Request is_cargo_present  : is_cargo_present(X)
-    Reply   cargo_present     : cargo_present(X) for is_cargo_present
-    Reply   cargo_absent      : cargo_absent(X)  for is_cargo_present</code>
+    Reply   cargo_present     : cargo_present(X)    for is_cargo_present
+    Reply   cargo_absent      : cargo_absent(X)     for is_cargo_present</code>
 </pre>
 Inoltre, è necessario che sensor mandi un messaggio asincrono per avvisare che un container è stato depositato presso la IOPort;<br> 
 in questo modo, se ricevuto entro 30 secondi da load_accepted, cargoservice può proseguire nella movimentazione del robot:
         <pre>
-    <code>      Event container_in : container_in(X)</code>
+<code>    Event container_in : container_in(X)</code>
 </pre>
-    <h3>Hold</h3>
+    <h3>Hold e Slot</h3>
+    <p>
+        Durante lo Sprint 0 abbiamo definito la Hold e gli Slot come POJO. In questo sprint però decidiamo di creare anche l'attore
+        hold, così da separare la logica di business dalla logica dei dati. Sarà l'attore hold a comunicare con i POJO, mentre 
+        cargoservice si limiterà a inviare a hold delle richieste. In particolare, sono necessari dei messaggi per:
+        <ul>
+            <li>Verificare la disponibilità di uno slot libero: cargoservice richiede di riservare uno slot a hold.
+                Se c'è almeno uno slot libero, risponde con <tt>reserve_ok(N)</tt>, dove N è l'ID dello slot libero; altrimenti,
+                risponde <tt>reserve_fail(CAUSE)</tt> se tutti gli slot sono pieni, con <tt>CAUSE</tt> messaggio di fallimento nel riservare lo slot.
+            </li>
+            <p>
+        <pre>
+    <code>  Request reserve_slot  : reserve_slot(X)
+    Reply   reserve_ok    : reserve_ok(N)       for reserve_slot
+    Reply   reserve_fail  : reserve_fail(CAUSE) for reserve_slot</code></pre>
+    </p>
+            <li>Mostrare lo stato degli slot: da requisiti, è necessario mostrare sul display lo "stato della hold". 
+                Nello Sprint 0 abbiamo definito che con "mostrare lo stato della hold" si intende mostrare sul display
+                lo stato di ciascuno slot. Per questo, cargoservice invia una richiesta di <tt>get_hold_status(X)</tt>,
+                e la hold risponde con <tt>hold_status(STATUS) </tt>. <tt>STATUS</tt> è un vettore booleano di 4 elementi,
+                ognuno rappresentante lo stato degli slot 1..4, con 1 = pieno, 0 = vuoto. Al momento usiamo un display mock
+                implementato semplicemente come una stampa a terminale, per poi implementarlo nello Sprint 3.</li>
+                <p>
+        <pre>
+    <code>  Request get_hold_status  : get_hold_status(X)
+    Reply   hold_status      : hold_status(STATUS) for get_hold_status</code></pre>
+    </p>
+        </ul>
+
+    <p>
+        Gli Slot rimangono invece un POJO che compone un vettore di Slot nel POJO Hold, come già descritti (LINK) nello Sprint 0.
+        Di seguito i link all'implementazione di Slot (LINK .java) e di Hold (LINK .java). 
+        L'accesso all'oggetto Hold avviene attraverso l'interfaccia IHold, che espone i seguenti metodi:
+<pre><code>
+    public interface IHold{
+        int    reserveSlot();
+        void   freeSlot();
+        Slot[] getHoldStatus();
+    }
+        </code></pre>
+    </p>
+    </p>
+    <h3>cargorobot</h3>
+    <p>
+        Per realizzare cargorobot non dobbiamo partire da un semplice DDR: infatti, l'azienda ci mette a disposizione 
+        delle implementazioni di controllo di diversa natura, come già discusso (LINK) nello Sprint 0. E' necessario scegliere
+        quella che ci è più conveniente per il nostro sistema, analizzando le diverse opzioni:
+        <ul>
+            <li>RobotObj26 (LINK proto): è un POJO, quindi implementa il controllo del robot in Java. Questo ne limita l'utilità dato che
+                i suoi comandi potranno essere invocati solo in un ambiente Java, inoltre è altamente sincrono e non adatto
+                all'architettura a messaggi del nostro sistema. (LINK Codice RobotObj26)
+            </li>
+            <li>RobotService26 (LINK proto): è un servizio che comunica tramite messaggi, quindi sarebbe compatibile con l'architettura del nostro sistema, ma la
+                sua implementazione definisce che è il chiamante a prendere la responsabilità della logica di routing del robot, 
+                step by step. (LINK Codice RobotService26)
+            </li>
+            <li>
+                RobotSmart26 (LINK proto): è un servizio che comunica tramite messaggi, è context-aware (LINK proto) ed esegue planning (LINK proto). Questo lo rende il
+                candidato migliore per implementare il nostro cargorobot, così che la logica di moviemnto del robot risieda in RobotSmart26 e
+                cargoservice non deve occuparsi anche di pianificare i movimenti, ma solo indicare a cargorobot delle posizioni logiche alle quali
+                recarsi, come SlotN, HOME... . Inoltre, RobotSmart26 implementa la comunicazione a messaggi attraverso QAK, quindi è
+                già adatto a comunicare con il nostro sistema. (LINK Codice RobotSmart26)
+            </li>
+        </ul>
+    </p>
+    <p>
+        Riportiamo i messaggi di RobotSmart26 per il movimento del robot, 
+        in particolare è necessario usare <tt>moverobot(TARGETX, TARGETY,STEPTIME)</tt>. <tt>TARGETX</tt> e <tt>TARGETY</tt> 
+        sono le coordinate target, ovvero dove vogliamo muovere il robot, mentre <tt>STEPTIME</tt> 
+        indica la lunghezza di ogni passo del robot (nel nostro caso usiamo il valore di default).
+    </p>
+    <pre>
+    <code>  Request moverobot       : moverobot(TARGETX, TARGETY,STEPTIME)
+    Reply   moverobotdone   : moverobotok(ARG)                    for moverobot
+    Reply   moverobotfailed : moverobotfailed(PLANDONE, PLANTODO) for moverobot
+</code></pre>
+    
 </p>
 <h2>Test Plans</h2>
+<p>
+    Nello Sprint 0 abbiamo definito un insieme iniziale di test (LINK test Sprint0) che il sistema deve superare alla fine dello Sprint 1.<br>
+    Riportiamo la lista descrittiva dei test:
+    <ul>
+    <li><bc>T01</bc>: Richiesta di carico accettata</li>
+    <li><bc>T02</bc>: Container depositato in tempo dopo una richiesta accettata (verifica check asincrono <tt>container_in</tt>)</li>
+    <li><bc>T03</bc>: Continer non depositato in tempo dopo una richiesta accettata: Timeout / DISENGAGED</li>
+    <li><bc>T04</bc>: Richiesta rifiutata per Hold piena</li>
+    <li><bc>T05</bc>: Richiesta rifiutata per Sensor guasto / OUT_OF_SERVICE</li>
+    <li><bc>T06</bc>: Container già presente all'IOPort al momento della richiesta accettata (verifica check sincrono <tt>is_cargo_present</tt>)</li>
+</ul>
+</p>
+<p>
+    Questi test non sono rapidi dato che richiedono il movimento effettivo del robot, però possono comunque
+    essere automatizzati grazie alla suite di teting JUnit, infatti prima di ogni test, la Hold viene resettata e il robot
+    riportato in posizione HOME, così da ripartire con uno stato "pulito" del sistema. Il codice dei test funzionali contiene
+    commenti con spiegazione approfondita delle pre- e post-condizioni di ciascun test (LINK test).
+</p>
 <h2>Architettura</h2>
 <h2>Deployment</h2>
-<h2>Goal Sprint 2</h2>
+<h2>Considerazioni Sprint 1 e Goal Sprint 2</h2>
 </div>
 
     
