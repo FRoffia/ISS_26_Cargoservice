@@ -20,7 +20,7 @@
             e <bc>cargorobot</bc>, ciascuno con il proprio contesto, oltre a un primo modello dati per <bc>Hold</bc> e
             <bc>Slot</bc>.
         </p>
-        <img src="img/arch0_gen.png" width="30%">
+        <img src="img/arch0_gen.png" width="50%">
 
         <h2>Goal</h2>
         <p>
@@ -182,12 +182,12 @@
             <li><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=299">RobotObj26</a>: è un
                 POJO che implementa il controllo del robot in Java. Questo ne limita l'utilità, dato che i suoi
                 comandi possono essere invocati solo in un ambiente Java; inoltre, è un componente altamente sincrono,
-                non adatto all'architettura a scambio di messaggi del nostro sistema. (LINK Codice RobotObj26)
+                non adatto all'architettura a scambio di messaggi del nostro sistema.<a href="https://github.com/anatali/issLab2026/blob/main/vrUsage26/utils/robots/RobotObj26.java">(Codice RobotObj26)</a>
             </li>
             <li><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=303">RobotService26</a>: è
                 un servizio che comunica tramite messaggi, e sarebbe quindi compatibile con l'architettura del nostro
                 sistema; tuttavia, la sua implementazione lascia al chiamante la responsabilità della logica di
-                instradamento del robot, passo dopo passo. (LINK Codice RobotService26)
+                instradamento del robot, passo dopo passo. <a href="https://github.com/anatali/issLab2026/tree/main/robotservice26">(Codice RobotService26)</a>
             </li>
             <li>
                 <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=319">RobotSmart26</a>: è
@@ -199,8 +199,7 @@
                 movimento risiede interamente in RobotSmart26, mentre <bc>cargoservice</bc> non deve occuparsi di
                 pianificare i movimenti, ma solo di indicare a <bc>cargorobot</bc> le posizioni logiche di
                 destinazione (ad esempio SlotN oppure HOME). Inoltre, RobotSmart26 implementa la comunicazione a
-                messaggi attraverso QAK, ed è quindi già predisposto per comunicare con il nostro sistema. (LINK
-                Codice RobotSmart26)
+                messaggi attraverso QAK, ed è quindi già predisposto per comunicare con il nostro sistema.<a href="https://github.com/anatali/issLab2026/tree/main/robotsmart26">(Codice RobotSmart26)</a>
             </li>
         </ul>
         <p>
@@ -300,12 +299,7 @@
             è stato necessario rimuovere da <em>Hold</em> le coordinate, ora gestite da <bc>cargorobot</bc> e
             sostituite dalle etichette, oltre a rimuovere la rappresentazione spaziale della hold (dimensioni, muri, ostacoli),
             già presente all'interno di RobotSmart26.<br><br>
-            LINK A HOLD
-        </p>
-
-        <p>
-            Analogamente, abbiamo aggiunto l'etichetta come parametro di <em>Slot</em>.<br><br>
-            LINK A SLOT
+            Link a <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint1/src/it/unibo/holdservice/Hold.java">Hold</a> e <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint1/src/it/unibo/holdservice/Slot.java">Slot</a> aggiornati.
         </p>
 
         <h2>Test Plans</h2>
