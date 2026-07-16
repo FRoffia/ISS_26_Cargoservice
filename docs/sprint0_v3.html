@@ -580,11 +580,11 @@ public void testT05() throws Exception {
 }
 </code></pre>
 
-<h4>T06: Container già presente all'IOPort - carico immediato</h4>
+<h4>T06: Container già presente all'IOPort - retrylater</h4>
 <div class="remark">
 <b>Precondizione:</b> container depositato <em>prima</em> della load_request<br/>
 <b>Atteso:</b> alla load_request, cargoservice interroga sensor e
-e il ciclo di movimentazione parte subito, senza attendere i 30s.
+e rifiuta il carico, rispondendo con retrylater.
 </div>
 <pre><code>@Test
 public void testT06_ContainerAlreadyAtIoport() throws Exception {
@@ -594,16 +594,7 @@ public void testT06_ContainerAlreadyAtIoport() throws Exception {
     //invio richiesta di carico
     String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
     String resp = conn.request(req);
-    assertTrue("T06 setup: richiesta accettata", resp.contains("load_accepted"));
-
-    CommUtils.delay(8000); //attendo finisca l'operazione
-
-    //sistema tornato in DISENGAGED: nuova richiesta accettata
-    sensorStub.setContainerStatus(false);
-    String req2 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
-    String resp2 = conn.request(req2);
-
-    assertTrue("T06: carico avviato con container già presente", resp2.contains("load_accepted"));
+    assertTrue("T06 setup: richiesta rifiutata", resp.contains("retrylater"));
 }
 </code></pre>
 
