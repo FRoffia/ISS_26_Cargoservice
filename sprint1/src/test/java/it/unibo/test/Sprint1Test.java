@@ -39,16 +39,16 @@ public class Sprint1Test {
 	 */
 	@Test
 	public void testT01_02() throws Exception {
-		String set_cargo_absent = CommUtils.buildDispatch("tester", "mock_cargo_absent", "mock_cargo_absent(X)", "sensor").toString();
+		String set_cargo_absent = CommUtils.buildDispatch("tester", "mock_cargo_absent", "mock_cargo_absent(X)", "mock_sensor").toString();
 		conn.forward(set_cargo_absent);
 		
-	    String req = CommUtils.buildRequest("pushbutton", "load_request", "load_request(x)", "cargoservice").toString();
+	    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
 	    System.out.println("Richiesta: " + req);
 	    String resp = conn.request(req);
 
 	    assertTrue("T01: load_accepted con slot assegnato", resp.contains("load_accepted"));
 	    //simula sensor: container rilevato all'IOPort (dispatch asincrono)
-	    conn.forward(CommUtils.buildDispatch("sensor", "container_in", "container_in(X)", "cargoservice").toString());
+	    conn.forward(CommUtils.buildDispatch("mock_sensor", "container_in", "container_in(X)", "cargoservice").toString());
 
 	    Thread.sleep(45000);
 	    
@@ -69,7 +69,7 @@ public class Sprint1Test {
 	@Test
 	public void testT03() throws Exception {
 		
-		String set_cargo_absent = CommUtils.buildDispatch("tester", "mock_cargo_absent", "mock_cargo_absent(X)", "sensor").toString();
+		String set_cargo_absent = CommUtils.buildDispatch("tester", "mock_cargo_absent", "mock_cargo_absent(X)", "mock_sensor").toString();
 		conn.forward(set_cargo_absent);
 		Thread.sleep(7000);
 	    //lo slot deve essere stato liberato
@@ -85,7 +85,7 @@ public class Sprint1Test {
 	 */
 	@Test
 	public void testT04() throws Exception {
-		String set_cargo_present = CommUtils.buildDispatch("tester", "mock_cargo_present", "mock_cargo_present(X)", "sensor").toString();
+		String set_cargo_present = CommUtils.buildDispatch("tester", "mock_cargo_present", "mock_cargo_present(X)", "mock_sensor").toString();
 		conn.forward(set_cargo_present);
 
 	    //invio richiesta di carico
@@ -102,14 +102,14 @@ public class Sprint1Test {
 	@Test
 	public void testT05() throws Exception {
 		//occupo tutti gli slot
-		String set_hold_full = CommUtils.buildDispatch("tester", "test_hold_full", "test_hold_full(X)", "holdcontroller").toString();
+		String set_hold_full = CommUtils.buildDispatch("tester", "test_hold_full", "test_hold_full(X)", "holdservice").toString();
 		conn.forward(set_hold_full);
 		
 	    //invio richiesta di carico
 	    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
 	    String resp = conn.request(req);
 	    
-	    String set_hold_empty = CommUtils.buildDispatch("tester", "test_hold_empty", "test_hold_empty(X)", "holdcontroller").toString();
+	    String set_hold_empty = CommUtils.buildDispatch("tester", "test_hold_empty", "test_hold_empty(X)", "holdservice").toString();
 	    conn.forward(set_hold_empty);
 	    
 	    assertTrue("T05: hold piena - load_rejected", resp.contains("load_rejected"));

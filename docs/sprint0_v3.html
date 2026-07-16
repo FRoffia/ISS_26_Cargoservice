@@ -43,7 +43,7 @@ Inoltre, visto che la nostra software house si occupa già di robotica, sarà im
 
 </p>
 
-<h2>Requisiti</h2>
+<h2 id="req">Requisiti</h2>
 
 <div class="req">
 A <i>Maritime Cargo shipping company</i> (fron now on, simply <b>company</b>) intends to automate the operations of load of
@@ -107,7 +107,7 @@ In the picture below:
 </ul>
 </div>
 
-<h2>Premessa: utilizzo di QAK</h2>
+<h2 id="premessa">Premessa: utilizzo di QAK</h2>
 <p>
     L'analisi dei requisiti si fonderà principalmente sul concetto di attore e sull'utilizzo del 
         <em><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#chapter.17">metamodello 
@@ -140,7 +140,7 @@ In the picture below:
         di essere liberi di scegliere la tecnologia più appropriata per ogni componente senza paura di
         complicare la comunicazione e lo sviluppo.
 </p>
-<h2>Domande al committente</h2>
+<h2 id="domande">Domande al committente</h2>
 <p>
 <ol>
     <li>Quanto dura il periodo di marcatura del container presso lo Slot 5? <br><i>Risposta del committente</i>: è possibile assumere un valore fisso di 2 secondi.</li>
@@ -225,7 +225,7 @@ La logica di business principale è composta da:
     }
 </pre>
 <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint0/src/sprint0.qak">Link al modello QAK</a><br><br>
-<h3>Hold e slots</h3>
+<h3 id="hold">Hold e slots</h3>
 <p>
 La <bc>hold</bc> è lo spazio di lavoro del cargorobot. Si tratta di uno spazio rettangolare di altezza 
     <b>H</b> e base <b>B</b> (deducibili da figura nei requisiti), contenente dei punti di interesse per la 
@@ -424,7 +424,7 @@ QActor led context ctx_sensor {
 }
 </pre>
 
-<h2>Architettura Logica del Sistema</h2>
+<h2 id="arch">Architettura Logica del Sistema</h2>
 <p>
 Definiamo una prima architettura logica del sistema, 
 composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <bc>webGUI</bc>, <bc>robotsmart</bc>, ognuno con il proprio contesto.<br>
@@ -432,7 +432,7 @@ composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <
 </p>
 <img src="img/arch0_gen.png" width="50%">
 
-<h2>Componenti da Sviluppare</h2>
+<h2 id="sviluppare">Componenti da Sviluppare</h2>
 <h3>Da sviluppare</h3>
 <ul>
     <li><bc>hold</bc> : Sprint 1 (gestione mappa e slot)</li>
@@ -444,7 +444,7 @@ composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <
     <li><bc>display</bc> : Sprint 3 (output verso webGUI)</li>
 </ul>
 
-<h3>Forniti dal committente</h3>
+<h3 id="forniti">Forniti dal committente</h3>
 <p>
     Essendo la nostra azienda specializzata in robotica, ci vengono forniti diversi software di controllo del DDR, ognuno con proprietà diverse. <br><br>
     
@@ -470,7 +470,7 @@ composta dai quattro attori principali <bc>cargoservice</bc>, <bc>sensor</bc>, <
 </p>
 
 
-<h2>Test Plans</h2>
+<h2 id="test">Test Plans</h2>
 
 <p>
 I test sono scritti in Java (JUnit).

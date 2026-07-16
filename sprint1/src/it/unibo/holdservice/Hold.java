@@ -1,4 +1,4 @@
-package it.unibo.holdcontroller;
+package it.unibo.holdservice;
 
 public class Hold{         
     private int n;

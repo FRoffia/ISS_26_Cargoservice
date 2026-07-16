@@ -1,4 +1,4 @@
-package it.unibo.holdcontroller;
+package it.unibo.holdservice;
 
 class Slot{
     private boolean occupied;

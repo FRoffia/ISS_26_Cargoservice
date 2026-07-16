@@ -33,11 +33,7 @@ context(ctxrobotsmart, "127.0.0.1",  "TCP", "8020").
  static(cargoservice).
   qactor( cargorobot, ctx_cargoservice, "it.unibo.cargorobot.Cargorobot").
  static(cargorobot).
-  qactor( led, ctx_cargoservice, "it.unibo.led.Led").
- static(led).
-  qactor( sensor, ctx_cargoservice, "it.unibo.sensor.Sensor").
- static(sensor).
-  qactor( ioport, ctx_cargoservice, "it.unibo.ioport.Ioport").
- static(ioport).
-  qactor( holdcontroller, ctx_cargoservice, "it.unibo.holdcontroller.Holdcontroller").
- static(holdcontroller).
+  qactor( mock_sensor, ctx_cargoservice, "it.unibo.mock_sensor.Mock_sensor").
+ static(mock_sensor).
+  qactor( holdservice, ctx_cargoservice, "it.unibo.holdservice.Holdservice").
+ static(holdservice).

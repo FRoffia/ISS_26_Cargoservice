@@ -84,7 +84,7 @@ QActor cargoservice context ctx_cargoservice {
    
     State evaluate_request{
     	println("cargoservice | checking with hold if a slot is available") color blue
-    	request holdcontroller -m reserve_slot : reserve_slot(X)
+    	request holdservice -m reserve_slot : reserve_slot(X)
     }
     Transition t0
     	whenReply reserve_ok -> check_ioport
@@ -115,7 +115,7 @@ QActor cargoservice context ctx_cargoservice {
 		}
 		
 		//richiesta sincrona a ioport per sapere se c'è già un container, in caso rispondo a load request con retrylater
-		request sensor -m is_cargo_present : is_cargo_present(X)
+		request mock_sensor -m is_cargo_present : is_cargo_present(X)
 	}
 	Transition t0
 		whenReply cargo_present -> retry_later
@@ -302,20 +302,7 @@ QActor cargorobot context ctx_cargoservice {
 	Goto s0
 }
 
-QActor led context ctx_cargoservice {
-    State s0 initial {}
-    Goto off
-    
-    State off {
-        println("led | DISENGAGED: led off") color green
-    }
-    
-    State on {
-    	println("led | ENGAGED or OUT OF ORDER: led on")
-    }
-}
-
-QActor sensor context ctx_cargoservice {
+QActor mock_sensor context ctx_cargoservice {
     State s0 initial {}
     Goto work
     State work {
@@ -356,34 +343,7 @@ QActor sensor context ctx_cargoservice {
     
 }
 
-QActor ioport context ctx_cargoservice {
-	State s0 initial {
-		//in attesa della pressione del pushbutton
-	}
-	Goto pushbutton
-	
-	State pushbutton {
-	
-	}
-		
-	State accepted {
-		println("ioport | DISPLAY: load accepted") color green
-	}
-	
-	
-	State retrylater {
-		println("ioport | DISPLAY: retry later") color yellow
-	}
-	
-	
-	State rejected {
-		println("ioport | DISPLAY: load rejected") color red
-	}
-	
-	
-}
-
-QActor holdcontroller context ctx_cargoservice{
+QActor holdservice context ctx_cargoservice{
 	[#
 		var hold = Hold(4)
 	#]

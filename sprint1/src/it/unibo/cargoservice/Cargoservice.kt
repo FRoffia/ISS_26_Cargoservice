@@ -73,7 +73,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				state("evaluate_request") { //this:State
 					action { //it:State
 						CommUtils.outblue("cargoservice | checking with hold if a slot is available")
-						request("reserve_slot", "reserve_slot(X)" ,"holdcontroller" )  
+						request("reserve_slot", "reserve_slot(X)" ,"holdservice" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -104,7 +104,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 												Cur_reserved_slot = payloadArg(0)
 								CommUtils.outblack("cargoservice | Reserved slot: $Cur_reserved_slot")
 						}
-						request("is_cargo_present", "is_cargo_present(X)" ,"sensor" )  
+						request("is_cargo_present", "is_cargo_present(X)" ,"mock_sensor" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

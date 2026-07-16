@@ -6,205 +6,226 @@
     <title>Sprint 1</title>
 </head>
 <body>
-    
+
     <div id="top">
-        <h1>Sprint 1_v0: analisi del problema ed implementazione di Cargoservice, Cargorobot e la Hold</h1>
+        <h1>Sprint 1_v0: Analisi del Problema e Implementazione di Cargoservice, Cargorobot e Hold</h1>
     </div>
 
     <div class="body">
+
         <h2>Punto di partenza</h2>
         <p>
-            Dall'analisi dei requisiti svolta nello <a href="sprint0_v3.html">Sprint 0</a>, abbiamo ottenuto una prima
+            Dall'analisi dei requisiti svolta nello <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">Sprint 0</a>, abbiamo ottenuto una prima
             architettura logica del sistema, composta dagli attori <bc>cargoservice</bc>, <bc>sensor</bc>, <bc>ioport</bc>
             e <bc>cargorobot</bc>, ciascuno con il proprio contesto, oltre a un primo modello dati per <bc>Hold</bc> e
             <bc>Slot</bc>.
         </p>
-    <img src="img/arch0_gen.png" width="30%">
-    <h2>Goal</h2>
-    <p>
-        L'obiettivo dello <bc>Sprint 1</bc> è l'analisi del problema e la progettazione dei componenti
-        <bc>cargoservice</bc> e <bc>cargorobot</bc>, con particolare attenzione alle interazioni tra di essi durante il
-        ciclo di movimentazione dei container. In particolare:
-    </p>
-    <ul>
-        <li>Realizzare la logica in grado di rispondere correttamente alle richieste di carico,
-        in base allo stato del sistema e alla disponibilità di slot liberi</li>
-        <li>Realizzare il ciclo di movimentazione del <bc>cargorobot</bc>, che consiste in:
-            <ol>
-                <li>spostamento dalla posizione HOME alla IOPort</li>
-                <li>prelievo del container, non appena disponibile</li>
-                <li>spostamento allo slot5 per la marcatura</li>
-                <li>spostamento allo slot libero</li>
-                <li>ritorno alla posizione HOME</li>
-            </ol>
-        </li>
-        <li>Realizzare il modello della <bc>Hold</bc> che tenga traccia dello stato degli slot (liberi/occupati) e
-        permetta di individuare uno slot libero</li>
-    </ul>
-    <p>
-        Poiché <bc>sensor</bc> e <bc>pushbutton</bc> non sono ancora stati sviluppati
-        (saranno oggetto degli Sprint 2 e 3), in questo sprint introduciamo delle versioni <em>mock</em> di questi
-        componenti, sufficienti a scambiare con <bc>cargoservice</bc> i messaggi necesari per progettazione e testing dei componenti dello sprint.
-    </p>
+        <img src="img/arch0_gen.png" width="30%">
 
-    <h2 id="domande">Domande al committente</h2>
-    <ol>
-        <li>In quale momento uno slot libero deve essere considerato "riservato": già alla risposta
-        <tt>load_accepted</tt>, oppure solo quando il cargorobot deposita fisicamente il container?
-        <br><i>Risposta del committente</i>: </li>
-        <li>Una volta depositato il container nello slot, il cargorobot deve tornare alla posizione HOME?
-        <br><i>Risposta del committente</i>:</li>
-    </ol>
-
-
-    <h2>Analisi dei Requisiti</h2>
-    <p>
-        L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un documento di analisi dei requisiti approfondito. (LINK A SPRINT 0)
-    </p>
-    
-    
-    <h2>Analisi del Problema</h2>
-    <p>
-        L'architettura di sistema QAK risultatante da questa analisi è disponibile a questo LINK, non viene 
-        riportata integralmente in questo documento di analisi.
-    </p>
-    <h3>cargoservice</h3>
-    <p>
-        Iniziamo dall'analisi di <bc>cargoservice</bc>, l'attore principale del sistema, che implementa il core-business
-        e orchestra gli altri componenti. Il suo sviluppo dipende dall'interazione con componenti non ancora realizzati
-        (<bc>sensor</bc> e <bc>pushbutton</bc>): per questo introduciamo dei mock in grado di scambiare con
-        <bc>cargoservice</bc> gli stessi messaggi che verranno prodotti dalle implementazioni reali. In questo modo,
-        <bc>cargoservice</bc> può essere sviluppato e testato già in questo sprint, e sarà pronto a interagire con i
-        componenti reali senza richiedere modifiche alla sua logica interna.
-    </p>
-        
-    <p>
-        Nei requisiti è presente una descrizione dettagliata del ciclo di movimentazione del cargorobot e degli stati
-        del sistema.<br> Riportiamo qui l'intera evoluzione, soffermandoci sui passaggi che richiedono un'analisi più
-        approfondita:
-    </p>
-    <ol>
-        <li>Il <bc>cargorobot</bc> si trova inizialmente in posizione HOME e il sistema si trova nello stato
-        <tt>DISENGAGED</tt>.</li>
-        <li>L'utente invia una richiesta di carico (<tt>load_request</tt>), alla quale <bc>cargoservice</bc> risponde
-        con:
-            <ul>
-                <li><tt>load_accepted</tt>: se il sistema è <tt>DISENGAGED</tt>, c'è almeno uno slot libero e la IOPort 
-                    è attualmente vuota. Il sistema passa in stato <tt>ENGAGED</tt>.
-                    <div class="remark">
-                        ANALISI: è quindi necessario che la <bc>Hold</bc> mantenga lo stato di ciascuno slot
-                        (libero/riservato) e sia in grado di restituire a <bc>cargoservice</bc> <br>l'identificativo di uno
-                        slot libero, da comunicare successivamente al <bc>cargorobot</bc> come destinazione finale.
-                        <br><br>
-                        Inoltre, è necessario che <bc>cargoservice</bc> sia in grado di interrogare il sensore della <bc>IOPort</bc> per sapere
-                        se essa è già occupata al momento della richiesta.
-                    </div>
-                </li>
-                <li><tt>load_rejected</tt>: se il sistema è <tt>OUT_OF_SERVICE</tt>, a causa di un malfunzionamento del
-                    <bc>sensor</bc> (Out Of Service detection implementata in Sprint 2), oppure se la hold è già piena.</li>
-                <li><tt>retrylater</tt>: se il sistema è già <tt>ENGAGED</tt>, ovvero è già in corso un ciclo di
-                    movimentazione, oppure se la IOPort è occupata al momento della richiesta.</li>
-            </ul>
-        </li>
-        <li>Una volta accettato il carico, l'utente ha 30 secondi per depositare un container davanti al <bc>sensor</bc>
-            presso la <bc>IOPort</bc>.<br> Se il container non viene depositato entro tale tempo, il sistema torna in
-            <tt>DISENGAGED</tt> e lo slot riservato viene liberato.
-            <div class="remark">
-                ANALISI: è necessario gestire in modo diverso il caso in cui il container sia già presente alla IOPort
-                nel momento stesso in cui la richiesta viene accettata, rispetto al caso in cui non lo sia ancora.
-                <bc>cargoservice</bc> deve quindi sempre verificare, non appena accetta il carico, se il container è
-                già presente; se non lo è, deve rimanere in attesa di essere avvisato. Due possibili strategie:
+        <h2>Goal</h2>
+        <p>
+            L'obiettivo dello <bc>Sprint 1</bc> è l'analisi del problema e la progettazione dei componenti
+            <bc>cargoservice</bc> e <bc>cargorobot</bc>, con particolare attenzione alle interazioni tra di essi durante il
+            ciclo di movimentazione dei container. In particolare:
+        </p>
+        <ul>
+            <li>Realizzare la logica in grado di rispondere correttamente alle richieste di carico, in base allo stato
+                del sistema e alla disponibilità di slot liberi.</li>
+            <li>Realizzare il ciclo di movimentazione del <bc>cargorobot</bc>, che consiste in:
                 <ol>
-                    <li><bc>cargoservice</bc> interroga periodicamente (polling sincrono) il <bc>sensor</bc> sulla
-                        presenza del container</li>
-                    <li>il <bc>sensor</bc> notifica in modo asincrono (dispatch), non appena rileva il container</li>
+                    <li>spostamento dalla posizione HOME alla IOPort</li>
+                    <li>prelievo del container, non appena disponibile</li>
+                    <li>spostamento allo slot5 per la marcatura</li>
+                    <li>spostamento allo slot libero</li>
+                    <li>ritorno alla posizione HOME</li>
                 </ol>
-                Scegliamo la seconda strategia, più coerente con lo stile di comunicazione a scambio di messaggi
-                adottato in tutto il sistema, ed evitando di appesantire <bc>cargoservice</bc> con la gestione di un polling.
-        
-                <p>Da questa analisi emerge la necessità di introdurre nuovi messaggi, oltre a quelli definiti nello Sprint 0:<br> 
-                    Una request per verificare se un container è già presente alla <bc>IOPort</bc>, da inviare non appena la richiesta di
-                    carico viene accettata:
-                </p>
+            </li>
+            <li>Realizzare il modello della <bc>Hold</bc>, che tenga traccia dello stato degli slot (liberi/occupati) e
+                permetta di individuare uno slot libero.</li>
+        </ul>
+        <p>
+            Poiché <bc>sensor</bc> e <bc>pushbutton</bc> non sono ancora stati sviluppati (saranno oggetto degli Sprint 2
+            e 3), in questo sprint introduciamo delle versioni <em>mock</em> di questi componenti, sufficienti a
+            scambiare con <bc>cargoservice</bc> i messaggi necessari alla progettazione e al testing dei componenti
+            dello sprint.
+        </p>
+
+        <h2 id="domande">Domande al committente</h2>
+        <ol>
+            <li>In quale momento uno slot libero deve essere considerato "riservato": già alla risposta
+                <tt>load_accepted</tt>, oppure solo quando il cargorobot deposita fisicamente il container?
+                <br><i>Risposta del committente</i>: </li>
+            <li>Una volta depositato il container nello slot, il cargorobot deve tornare alla posizione HOME?
+                <br><i>Risposta del committente</i>:</li>
+        </ol>
+
+        <h2>Analisi dei Requisiti</h2>
+        <p>
+            L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un approfondito
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">documento di analisi dei requisiti</a>.
+        </p>
+
+        <h2>Analisi del Problema</h2>
+        <p>
+            L'architettura del sistema risultante da questa analisi, definita in QAK, è
+            <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint1/src/sprint1.qak">disponibile su GitHub</a>
+            e non viene riportata integralmente in questo documento di analisi.
+        </p>
+
+        <h3>cargoservice</h3>
+        <p>
+            Iniziamo dall'analisi di <bc>cargoservice</bc>, l'attore principale del sistema, che implementa il core
+            business e orchestra gli altri componenti. Il suo sviluppo dipende dall'interazione con componenti non
+            ancora realizzati (<bc>sensor</bc> e <bc>pushbutton</bc>): per questo introduciamo dei mock in grado di
+            scambiare con <bc>cargoservice</bc> gli stessi messaggi che verranno prodotti dalle implementazioni reali.
+            In questo modo, <bc>cargoservice</bc> può essere sviluppato e testato già in questo sprint, ed è pronto a
+            interagire con i componenti reali senza richiedere modifiche alla sua logica interna.
+        </p>
+
+        <p>
+            Nei requisiti è presente una descrizione dettagliata del ciclo di movimentazione del cargorobot e degli
+            stati del sistema. Riportiamo qui l'intera evoluzione, soffermandoci sui passaggi che richiedono
+            un'analisi più approfondita:
+        </p>
+        <ol>
+            <li>Il <bc>cargorobot</bc> si trova inizialmente in posizione HOME, mentre il sistema è nello stato
+                <tt>DISENGAGED</tt>.</li>
+            <li>L'utente invia una richiesta di carico (<tt>load_request</tt>), alla quale <bc>cargoservice</bc>
+                risponde con:
+                <ul>
+                    <li><tt>load_accepted</tt>: se il sistema è <tt>DISENGAGED</tt>, c'è almeno uno slot libero e la
+                        IOPort è attualmente vuota. Il sistema passa allo stato <tt>ENGAGED</tt>.
+                        <div class="remark">
+                            ANALISI: è quindi necessario che la <bc>Hold</bc> mantenga lo stato di ciascuno slot
+                            (libero/riservato) e sia in grado di restituire a <bc>cargoservice</bc> l'identificativo di
+                            uno slot libero, da comunicare successivamente al <bc>cargorobot</bc> come destinazione
+                            finale.
+                            <br><br>
+                            Inoltre, è necessario che <bc>cargoservice</bc> sia in grado di interrogare il sensor della
+                            <bc>IOPort</bc> per sapere se essa è già occupata al momento della richiesta.
+                        </div>
+                    </li>
+                    <li><tt>load_rejected</tt>: se il sistema è <tt>OUT_OF_SERVICE</tt>, a causa di un malfunzionamento
+                        del <bc>sensor</bc> (Out Of Service detection implementata in Sprint 2), oppure se la hold è
+                        già piena.</li>
+                    <li><tt>retrylater</tt>: se il sistema è già <tt>ENGAGED</tt>, ovvero è già in corso un ciclo di
+                        movimentazione, oppure se la IOPort è occupata al momento della richiesta.</li>
+                </ul>
+            </li>
+            <li>Una volta accettato il carico, l'utente ha 30 secondi per depositare un container davanti al
+                <bc>sensor</bc> presso la <bc>IOPort</bc>. Se il container non viene depositato entro tale tempo, il
+                sistema torna in <tt>DISENGAGED</tt> e lo slot riservato viene liberato.
+                <div class="remark">
+                    ANALISI: è necessario gestire in modo diverso il caso in cui il container sia già presente alla
+                    IOPort nel momento stesso in cui la richiesta viene accettata, rispetto al caso in cui non lo sia
+                    ancora. <bc>cargoservice</bc> deve quindi verificare, non appena accetta il carico, se il
+                    container è già presente: se non lo è, deve rimanere in attesa di essere avvisato. Due possibili
+                    strategie:
+                    <ol>
+                        <li><bc>cargoservice</bc> interroga periodicamente (polling sincrono) il <bc>sensor</bc> sulla
+                            presenza del container</li>
+                        <li>il <bc>sensor</bc> notifica in modo asincrono (dispatch), non appena rileva il container</li>
+                    </ol>
+                    Scegliamo la seconda strategia, più coerente con lo stile di comunicazione a scambio di messaggi
+                    adottato in tutto il sistema, evitando così di appesantire <bc>cargoservice</bc> con la gestione
+                    di un meccanismo di polling.
+
+                    <p>
+                        Da questa analisi emerge la necessità di introdurre nuovi messaggi, oltre a quelli già
+                        definiti nello Sprint 0: una request per verificare se un container è già presente presso la
+                        <bc>IOPort</bc>, da inviare non appena la richiesta di carico viene accettata:
+                    </p>
 
 <pre><code>    Request is_cargo_present  : is_cargo_present(X)
     Reply   cargo_present     : cargo_present(X)    for is_cargo_present
     Reply   cargo_absent      : cargo_absent(X)     for is_cargo_present
 </code></pre>
-                <p>
-                    Inoltre, è necessario che <bc>sensor</bc> mandi un messaggio asincrono per avvisare che un container è stato depositato presso la <bc>IOPort</bc>;<br> 
-                    in questo modo, se ricevuto entro 30 secondi da load_accepted, cargoservice può proseguire nella movimentazione del robot:
-                </p>
-            <pre>
-<code>    Event container_in : container_in(X)</code></pre>
-            </div>
-        </li>
-        <li>Non appena il container è disponibile, il <bc>cargorobot</bc> si sposta dalla posizione HOME alla
-            <bc>IOPort</bc> per prelevarlo.</li>
-        <li>Il <bc>cargorobot</bc> si sposta allo <bc>slot5</bc> per la marcatura, presso il quale sosta per circa 2
-            secondi.
-            <div class="remark">
-                ANALISI: come indicato dal committente, l'attività di marcatura è, per ora, puramente simulata: si
-                tratta semplicemente di un'ulteriore tappa nel percorso del robot, di durata fissa pari a 2 secondi.
-            </div>
-        </li>
-        <li>Il <bc>cargorobot</bc> si sposta allo slot libero riservato al momento della <tt>load_accepted</tt> e
-            deposita il container.
-            <!--<div class="remark">
-                ANALISI: poiché il deposito del container non è fisicamente simulato, possiamo considerare lo slot
-                come occupato già dal momento della riserva, senza dover attendere una conferma esplicita dell'arrivo
-                del robot allo slot.
-            </div>-->
-        </li>
-        <li>Il <bc>cargorobot</bc> ritorna alla posizione HOME e il sistema torna nello stato <tt>DISENGAGED</tt>,
-            pronto per una nuova richiesta.</li>
-    </ol>
-        
-    <h3>cargorobot</h3>
-    <p>
-        Per realizzare cargorobot non dobbiamo partire da un semplice DDR: infatti, l'azienda ci mette a disposizione 
-        delle implementazioni di controllo del robot di diversa natura, come già discusso (LINK) nello Sprint 0. E' necessario scegliere
-        quella che ci è più conveniente per il nostro sistema, analizzando le diverse opzioni:
-        <ul>
-            <li>RobotObj26 (LINK proto): è un POJO, quindi implementa il controllo del robot in Java. Questo ne limita l'utilità dato che
-                i suoi comandi potranno essere invocati solo in un ambiente Java, inoltre è altamente sincrono e non adatto
-                all'architettura a messaggi del nostro sistema. (LINK Codice RobotObj26)
+                    <p>
+                        Inoltre, è necessario che <bc>sensor</bc> invii un messaggio asincrono per avvisare che un
+                        container è stato depositato presso la <bc>IOPort</bc>: se ricevuto entro 30 secondi dalla
+                        <tt>load_accepted</tt>, <bc>cargoservice</bc> può proseguire con la movimentazione del robot.
+                    </p>
+<pre>
+<code>    Dispatch container_in : container_in(X)</code></pre>
+                </div>
             </li>
-            <li>RobotService26 (LINK proto): è un servizio che comunica tramite messaggi, quindi sarebbe compatibile con l'architettura del nostro sistema, ma la
-                sua implementazione definisce che è il chiamante a prendere la responsabilità della logica di routing del robot, 
-                step by step. (LINK Codice RobotService26)
+            <li>Non appena il container è disponibile, il <bc>cargorobot</bc> si sposta dalla posizione HOME alla
+                <bc>IOPort</bc> per prelevarlo.</li>
+            <li>Il <bc>cargorobot</bc> si sposta allo <bc>slot5</bc> per la marcatura, presso il quale sosta per circa
+                2 secondi.
+                <div class="remark">
+                    ANALISI: come indicato dal committente, l'attività di marcatura è, per ora, puramente simulata: si
+                    tratta semplicemente di un'ulteriore tappa nel percorso del robot, di durata fissa pari a 2
+                    secondi.
+                </div>
+            </li>
+            <li>Il <bc>cargorobot</bc> si sposta allo slot libero riservato al momento della <tt>load_accepted</tt> e
+                deposita il container.
+                <!--<div class="remark">
+                    ANALISI: poiché il deposito del container non è fisicamente simulato, possiamo considerare lo slot
+                    come occupato già dal momento della riserva, senza dover attendere una conferma esplicita dell'arrivo
+                    del robot allo slot.
+                </div>-->
+            </li>
+            <li>Il <bc>cargorobot</bc> ritorna alla posizione HOME e il sistema torna nello stato <tt>DISENGAGED</tt>,
+                pronto per una nuova richiesta.</li>
+        </ol>
+
+        <h3>cargorobot</h3>
+        <p>
+            Per realizzare <bc>cargorobot</bc> non partiamo da un semplice DDR: l'azienda ci mette infatti a
+            disposizione diverse implementazioni per il controllo del robot, di natura differente, come già discusso
+            nello <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">Sprint 0</a>. È quindi
+            necessario scegliere quella più adatta al nostro sistema, analizzando le diverse opzioni disponibili:
+        </p>
+        <ul>
+            <li><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=299">RobotObj26</a>: è un
+                POJO che implementa il controllo del robot in Java. Questo ne limita l'utilità, dato che i suoi
+                comandi possono essere invocati solo in un ambiente Java; inoltre, è un componente altamente sincrono,
+                non adatto all'architettura a scambio di messaggi del nostro sistema. (LINK Codice RobotObj26)
+            </li>
+            <li><a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=303">RobotService26</a>: è
+                un servizio che comunica tramite messaggi, e sarebbe quindi compatibile con l'architettura del nostro
+                sistema; tuttavia, la sua implementazione lascia al chiamante la responsabilità della logica di
+                instradamento del robot, passo dopo passo. (LINK Codice RobotService26)
             </li>
             <li>
-                RobotSmart26 (LINK proto): è un servizio che comunica tramite messaggi, è context-aware (LINK proto) ed esegue planning (LINK proto). Questo lo rende il
-                candidato migliore per implementare il nostro cargorobot, così che la logica di moviemnto del robot risieda in RobotSmart26 e
-                cargoservice non deve occuparsi anche di pianificare i movimenti, ma solo indicare a cargorobot delle posizioni logiche alle quali
-                recarsi, come SlotN, HOME... . Inoltre, RobotSmart26 implementa la comunicazione a messaggi attraverso QAK, quindi è
-                già adatto a comunicare con il nostro sistema. (LINK Codice RobotSmart26)
+                <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=319">RobotSmart26</a>: è
+                un servizio che comunica tramite messaggi, è
+                <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=319">context-aware</a>
+                ed è in grado di eseguire il
+                <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=319">planning</a> dei
+                movimenti. Questo lo rende il candidato migliore per implementare il nostro cargorobot: la logica di
+                movimento risiede interamente in RobotSmart26, mentre <bc>cargoservice</bc> non deve occuparsi di
+                pianificare i movimenti, ma solo di indicare a <bc>cargorobot</bc> le posizioni logiche di
+                destinazione (ad esempio SlotN oppure HOME). Inoltre, RobotSmart26 implementa la comunicazione a
+                messaggi attraverso QAK, ed è quindi già predisposto per comunicare con il nostro sistema. (LINK
+                Codice RobotSmart26)
             </li>
         </ul>
-    </p>
-    <p>
-        Riportiamo i messaggi di RobotSmart26 per il movimento del robot, 
-        in particolare è necessario usare <tt>moverobot(TARGETX, TARGETY,STEPTIME)</tt>. <tt>TARGETX</tt> e <tt>TARGETY</tt> 
-        sono le coordinate target, ovvero dove vogliamo muovere il robot, mentre <tt>STEPTIME</tt> 
-        indica la lunghezza di ogni passo del robot (nel nostro caso usiamo il valore di default).
-    </p>
-    <pre>
+        <p>
+            Riportiamo i messaggi di RobotSmart26 relativi al movimento del robot; in particolare, utilizziamo
+            <tt>moverobot(TARGETX, TARGETY,STEPTIME)</tt>. <tt>TARGETX</tt> e <tt>TARGETY</tt> sono le coordinate di
+            destinazione verso cui muovere il robot, mentre <tt>STEPTIME</tt> indica la lunghezza di ogni passo del
+            robot (nel nostro caso utilizziamo il valore di default).
+        </p>
+        <pre>
     <code>  Request moverobot       : moverobot(TARGETX, TARGETY,STEPsTIME)
     Reply   moverobotdone   : moverobotok(ARG)                    for moverobot
     Reply   moverobotfailed : moverobotfailed(PLANDONE, PLANTODO) for moverobot
 </code></pre>
 
-    <p>
-        Ci troviamo quindi a dover risolvere il problema di tradurre le informazioni  come
-        slot, ioport, home... in coordinate per il movimento di <em>RobotSmart</em>. Decidiamo di affidare questo compito
-        a un attore chiamato proprio <bc>cargorobot</bc>. Questo attore toglierà a <bc>cargosrvice</bc> il peso della
-        comunicazione con <em>RobotSmart26</em>, seguendo il Single Responsability Principle (LINK). Per realizzare
-        questo, utilizziamo un sistema di <em>etichette</em>, ovvero scegliamo delle stringhe per rappresentare i diversi
-        punti di interesse della <bc>hold</bc>, che saranno note a <em>holdservice</em>, e che poi verranno tradotti da <bc>cargorobot</bc> in coordinate
-        per il <em>RobotSmart26</em> attraverso la seguente mappa: 
-    </p>
-    <pre>
+        <p>
+            Ci troviamo quindi a dover risolvere il problema di tradurre informazioni come slot, IOPort e home in
+            coordinate utilizzabili da RobotSmart26. Decidiamo di affidare questo compito a un attore dedicato,
+            chiamato proprio <bc>cargorobot</bc>, che solleva <bc>cargoservice</bc> dall'onere di gestire direttamente
+            la comunicazione con RobotSmart26, seguendo il
+            <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=80">Single Responsibility Principle</a>.
+            Per realizzare questa astrazione, utilizziamo un sistema di <em>etichette</em>: scegliamo cioè delle
+            stringhe per rappresentare i diversi punti di interesse della <bc>hold</bc>, note a <em>holdcontroller</em>,
+            che verranno poi tradotte da <bc>cargorobot</bc> in coordinate per RobotSmart26 tramite la seguente mappa:
+        </p>
+        <pre>
     <code>  val positions = hashMapOf(
         "home"    	to arrayOf(0, 0),
         "io_port" 	to arrayOf(4, 0),
@@ -216,47 +237,51 @@
     )
 </code></pre>
 
-    <p>
-        Pensiamo che questo sistema di traduzione sia pulito, perchè permette di "nascondere" le informazioni di basso
-        livello come le coordinate, note solo ai servizi chi ne fanno uso, e di impostare l'architettura
-        con uno scambio di messaggi di più alto livello, come le <em>etichette</em>.
-    </p>
+        <p>
+            Riteniamo che questo sistema di traduzione sia efficace, perché permette di nascondere le informazioni di
+            basso livello, come le coordinate, note solo ai servizi che ne fanno effettivamente uso, e di impostare
+            l'architettura su uno scambio di messaggi di livello più alto, basato sulle etichette.
+        </p>
 
-    <p>
-        Seguendo questo modello, l'unico messaggio che <bc>cargoservice</bc> scambierà con <bc>cargorobot</bc> sarà 
-        <tt>handle_cargo_load(TARGET_SLOT)</tt>, ovvero la richiesta di gestire lo spostamento di un cargo a uno
-        slot precedentemente accordato con <em>holdservice</em> (vedere analisi di hold e slot), denotato dalla sua <em>etichetta</em> <tt>TARGET_SLOT</tt>.<br>
-        A questa richiesta potranno corrispondere due risposte:
-        <ul>
-            <li><tt>cargo_load_success</tt>: quando il cargo viene spostato con successo nello slot indicato e il robot
-            riesce a tornare a HOME</li>
-            <li><tt>cargo_load_failed</tt>: in caso di errori durante il tragitto. (per ora non è presente nessun piano 
-            di recovery)</li>
-        </ul>
-    </p>
-    <pre>
+        <p>
+            Seguendo questo modello, l'unico messaggio che <bc>cargoservice</bc> scambierà con <bc>cargorobot</bc>
+            sarà <tt>handle_cargo_load(TARGET_SLOT)</tt>: la richiesta di gestire lo spostamento di un container
+            verso lo slot precedentemente concordato con <em>holdcontroller</em> (analisi di hold e slot a seguire),
+            identificato dall'etichetta <tt>TARGET_SLOT</tt>. A questa richiesta possono corrispondere due risposte:
+            <ul>
+                <li><tt>cargo_load_success</tt>: quando il cargo viene spostato con successo nello slot indicato e il
+                    robot riesce a tornare a HOME</li>
+                <li><tt>cargo_load_failed</tt>: in caso di errori durante il tragitto (per ora non è previsto alcun
+                    piano di recovery)</li>
+            </ul>
+        </p>
+        <pre>
     <code>  //request e replies per comunicare con cargorobot
     Request  handle_cargo_load    : handle_cargo_load(TARGET_SLOT)
     Reply    cargo_load_success   : cargo_load_success(X)          for handle_cargo_load
     Reply    cargo_load_failed    : cargo_load_failed(X)           for handle_cargo_load
 </code></pre>
-        
-    <h3>Hold e Slot</h3>
-    <p>
-        Durante lo Sprint 0 abbiamo definito la <bc>hold</bc> e gli <bc>slot</bc> come POJO. In questo sprint però decidiamo di creare anche l'attore
-        <em>holdcontroller</em>, così da separare la logica di business dalla logica dei dati. Sarà l'attore <em>holdcontroller</em> a comunicare con i POJO, mentre 
-        <bc>cargoservice</bc> si limiterà a inviare a <em>holdcontroller</em> delle richieste. In particolare, sono necessari dei messaggi per:
+
+        <h3>Hold e Slot</h3>
+        <p>
+            Durante lo Sprint 0 abbiamo definito la <bc>hold</bc> e gli <bc>slot</bc> come POJO. In questo sprint,
+            però, decidiamo di introdurre anche l'attore <em>holdcontroller</em>, così da separare la logica di
+            business dalla logica dei dati. Sarà l'attore <em>holdcontroller</em> a comunicare con i POJO, mentre
+            <bc>cargoservice</bc> si limiterà a inviare richieste a <em>holdcontroller</em>. In particolare, sono
+            necessari dei messaggi per:
+        </p>
         <ul>
-            <li>Verificare la disponibilità di uno slot libero: <bc>cargoservice</bc> richiede cercare uno slot libero a <em>holdservice</em>.
-                Se c'è almeno uno slot libero, risponde con <tt>reserve_ok(N)</tt>, dove N è l'<em>etichetta</em> dello slot libero; altrimenti,
-                risponde <tt>reserve_fail(CAUSE)</tt> se tutti gli slot sono pieni, con <tt>CAUSE</tt> messaggio di fallimento nel riservare lo slot.
+            <li>Verificare la disponibilità di uno slot libero: <bc>cargoservice</bc> richiede a
+                <em>holdcontroller</em> di cercare uno slot libero. Se è disponibile almeno uno slot libero,
+                <em>holdcontroller</em> risponde con <tt>reserve_ok(N)</tt>, dove N è l'etichetta dello slot
+                assegnato; altrimenti, se tutti gli slot sono occupati, risponde con <tt>reserve_fail(CAUSE)</tt>,
+                dove <tt>CAUSE</tt> indica il motivo del fallimento nella riserva dello slot.
                 <pre>
     <code>  Request reserve_slot  : reserve_slot(X)
     Reply   reserve_ok    : reserve_ok(N)       for reserve_slot
     Reply   reserve_fail  : reserve_fail(CAUSE) for reserve_slot</code></pre>
             </li>
-        
-    
+
             <!--<li>Mostrare lo stato degli slot: da requisiti, è necessario mostrare sul display lo "stato della hold". 
                 Nello Sprint 0 abbiamo definito che con "mostrare lo stato della hold" si intende mostrare sul display
                 lo stato di ciascuno slot. Per questo, cargoservice invia una richiesta di <tt>get_hold_status(X)</tt>,
@@ -269,52 +294,55 @@
     Reply   hold_status      : hold_status(STATUS) for get_hold_status</code></pre>
     </li>-->
         </ul>
-    </p>
-    <p>
-        A seguito delle scelte fatte per <bc>cargoservice</bc>, <bc>cargorobot</bc> e <em>RobotSmart26</em>, è stato
-        necessario cambiare il POJO <em>Hold</em> rispetto alla sua modellazione nello sprint0. Prima di tutto, è
-        stato necessario eliminare da <em>Hold</em> le coordinate, ora prese in carico da <bc>cargorovot</bc> e 
-        quindi sostituite da <em>etichette</em>. Inoltre è stato anche necessario eliminare la rappresentazione
-        spaziale dell'<bc>hold</bc> (dimensione, muri, ostacoli...), visto che è già presente all'interno di <em>RobotSmart26</em>.<br><br>
-        LINK A HOLD
-    </p>
+        <p>
+            A seguito delle scelte fatte per <bc>cargoservice</bc>, <bc>cargorobot</bc> e RobotSmart26, è stato
+            necessario modificare il POJO <em>Hold</em> rispetto alla sua modellazione nello Sprint 0. In particolare,
+            è stato necessario rimuovere da <em>Hold</em> le coordinate, ora gestite da <bc>cargorobot</bc> e
+            sostituite dalle etichette, oltre a rimuovere la rappresentazione spaziale della hold (dimensioni, muri, ostacoli),
+            già presente all'interno di RobotSmart26.<br><br>
+            LINK A HOLD
+        </p>
 
-    <p>
-        Similarmente abbiamo aggiunto l'<em>etichetta</em> come parametro di <em>Slot</em><br><br>
-        LINK a SLOP
-    </p>
-    
+        <p>
+            Analogamente, abbiamo aggiunto l'etichetta come parametro di <em>Slot</em>.<br><br>
+            LINK A SLOT
+        </p>
 
-
-
-<h2>Test Plans</h2>
-<p>
-    Nello Sprint 0 abbiamo definito un insieme iniziale di test (LINK test Sprint0) che il sistema deve superare alla fine dello Sprint 1.<br>
-    Riportiamo la lista descrittiva dei test:
-    <ul>
-    <li><bc>T01_T02</bc>: Richiesta di carico accettata e container depositato in tempo dopo una richiesta accettata (verifica check asincrono <tt>container_in</tt>)</li>
-    <li><bc>T03</bc>: Continer non depositato in tempo dopo una richiesta accettata: Timeout / DISENGAGED</li>
-    <li><bc>T04</bc>: Container già presente all'IOPort al momento della richiesta accettata (verifica check sincrono <tt>is_cargo_present</tt>)</li>
-    <li><bc>T05</bc>: Richiesta rifiutata per Hold piena</li>
-    <li><bc>T06</bc>: Richiesta rifiutata per Sensor guasto / OUT_OF_SERVICE</li>
-    
-</ul>
-</p>
-<p>
-    Questi test non sono rapidi dato che richiedono il movimento effettivo del robot, però possono comunque
-    essere automatizzati grazie alla suite di teting JUnit, infatti prima di ogni test, la Hold viene resettata e il robot
-    riportato in posizione HOME, così da ripartire con uno stato "pulito" del sistema. Il codice dei test funzionali contiene
-    commenti con spiegazione approfondita delle pre- e post-condizioni di ciascun test (LINK test).
-</p>
-<p>
-    Per eseguire i test è necessario seguire i passaggi di deployment (LINK), poi avviare il sistema attraverso la task gradle
-    application -> run. Poi, si possono avviare i test con gradlew test.
-</p>
-<p>
-    Per poter svolgere i test è stato necessario aggiungere dei messaggi extra utilizzati per controllare artificiosamente
-    lo stato degli attori, in modo da ricreare le precondizioni dei diversi test. Questi sono:
-</p>
-<pre>
+        <h2>Test Plans</h2>
+        <p>
+            Nello Sprint 0 abbiamo definito un
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#test">insieme iniziale di test</a>
+            che il sistema deve superare alla fine dello Sprint 1. I test completi possono essere trovati
+            <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/sprint1/src/test/java/it/unibo/test/Sprint1Test.java">su GitHub a questo link</a>.
+            Riportiamo di seguito la lista descrittiva dei test implementati in questo sprint:
+        </p>
+        <ul>
+            <li><bc>T01_T02</bc>: richiesta di carico accettata e container depositato in tempo dopo una richiesta
+                accettata (verifica del check asincrono <tt>container_in</tt>)</li>
+            <li><bc>T03</bc>: container non depositato in tempo dopo una richiesta accettata: Timeout / DISENGAGED</li>
+            <li><bc>T04</bc>: container già presente all'IOPort al momento della richiesta accettata (verifica del
+                check sincrono <tt>is_cargo_present</tt>), risposta <tt>retrylater</tt></li>
+            <li><bc>T05</bc>: richiesta rifiutata per Hold piena</li>
+            <li><bc>T06</bc>: richiesta rifiutata per Sensor guasto / OUT_OF_SERVICE</li>
+        </ul>
+        <p>
+            Questi test non sono rapidi, dato che richiedono il movimento effettivo del robot; possono tuttavia essere
+            comunque automatizzati grazie alla suite di testing JUnit. Prima di ogni test, infatti, la Hold viene
+            resettata e il robot riportato in posizione HOME, in modo da ripartire sempre da uno stato "pulito" del
+            sistema. Il codice dei test funzionali contiene commenti con una spiegazione approfondita delle pre- e
+            post-condizioni di ciascun test.
+        </p>
+        <p>
+            Per eseguire i test è necessario innanzitutto completare i
+            <a href="#deployment">passaggi di deployment</a>, quindi avviare il sistema tramite la Gradle Task
+            application:run e, infine, lanciare i test con il comando <code>gradlew test</code> dal terminale.
+        </p>
+        <p>
+            Per facilitare lo svolgimento dei test è stato necessario aggiungere alcuni messaggi aggiuntivi,
+            utilizzati per forzare artificialmente lo stato degli attori e ricreare così le precondizioni dei diversi
+            test. Questi messaggi sono:
+        </p>
+        <pre>
 <code>
     //per comandare il mock sensor
     Dispatch mock_cargo_present : mock_cargo_present(X)
@@ -328,15 +356,67 @@
     Dispatch setDelay : setDelay(X)
 </code>
 </pre>
-<h2>Architettura</h2>
-<h2>Deployment</h2>
-<h2>Considerazioni Sprint 1 e Goal Sprint 2</h2>
-</div>
 
-    
-<div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px; font-size: large;">
-    By Andrea Gazzola <img src="img/fotoA.jpg" width="100px"> and Francesco Roffia <img src="img/fotoF.png" width="100px"> <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">
-    GIT repo: https://github.com/FRoffia/ISS_26_Cargoservice</a>
-</div>
+        <h2>Architettura</h2>
+        <p>
+            Di seguito illustriamo l'architettura QAK prodotta al termine dello Sprint 1. Per maggiore chiarezza,
+            abbiamo nascosto gli attori che verranno implementati negli sprint successivi, in modo da evidenziare
+            quali componenti sono attualmente realizzati. Per una visione d'insieme dell'architettura finale
+            prototipale, si rimanda all'
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#arch">architettura prodotta nello Sprint 0</a>.
+        </p>
+        <img src="img/arch1_gen.png" width="70%">
+
+        <h2 id="deployment">Deployment</h2>
+        <p>
+            Uno dei pregi del linguaggio di modellazione QAK è la possibilità di creare un modello eseguibile del
+            sistema. Al termine di questo sprint è stato infatti realizzato tale modello eseguibile, di cui è
+            possibile effettuare il deployment seguendo questi passi:
+        </p>
+        <ol>
+            <li>Creare e avviare i container di supporto per l'ambiente virtuale del robot con docker compose,
+                definiti nel file
+                <a href="https://github.com/anatali/issLab2026/blob/main/robotsmart26/yamls/robotsmart26.yaml">robotsmart26.yaml</a>
+                (le istruzioni per il deployment si trovano in fondo al file).</li>
+            <li>Collegarsi alla pagina web dell'ambiente virtuale, all'indirizzo
+                <a href="http://localhost:8085/">http://localhost:8085/</a>.</li>
+            <li>Importare il progetto sprint1 in Eclipse come progetto Gradle.</li>
+            <li>Lanciare il sistema tramite la Gradle Task run, oppure con il comando <code>gradlew run</code>.</li>
+            <li>Per eseguire i test, in un prompt dei comandi separato, lanciare il comando <code>gradlew test</code>.</li>
+        </ol>
+        <p>
+            Il sistema appena lanciato resta in stato DISENGAGED. Per osservare un ciclo di movimentazione, lanciare i
+            test.
+        </p>
+
+        <h2>Considerazioni Sprint 1 e Goal Sprint 2</h2>
+        <p>
+            Abbiamo rispettato la previsione sul tempo necessario per completare questo sprint: il lavoro totale è
+            stato di 22 ore uomo.
+        </p>
+        <p>
+            Suddivisione del lavoro:
+            <ul>
+                <li>Andrea Gazzola: analisi del problema, stesura piani di test, stesura documento finale Sprint 1</li>
+                <li>Francesco Roffia: analisi del problema, creazione del modello eseguibile QAK, stesura documento
+                    finale Sprint 1</li>
+            </ul>
+        </p>
+
+        <h3>Goal Sprint 2</h3>
+        <p>
+            Il prossimo sprint, lo Sprint 2, si concentrerà sull'implementazione fisica del componente
+            <bc>sensor</bc>. Al momento <bc>sensor</bc> è realizzato come mock, mentre nello Sprint 2 verrà modellato
+            completamente sia nel modello QAK sia a livello fisico: si tratta infatti di un sensore di prossimità a
+            ultrasuoni gestito da un Raspberry Pi. Verrà inoltre implementato un semplice software di controllo del
+            sensore, per comunicarne lo stato al modello.
+        </p>
+    </div>
+
+
+    <div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px; font-size: large;">
+        By Andrea Gazzola <img src="img/fotoA.jpg" width="100px"> and Francesco Roffia <img src="img/fotoF.png" width="100px"> <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">
+        GIT repo: https://github.com/FRoffia/ISS_26_Cargoservice</a>
+    </div>
 </body>
 </html>
