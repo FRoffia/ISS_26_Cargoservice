@@ -47,8 +47,8 @@ class Mock_sensor ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t026",targetState="cargo_present_wait",cond=whenDispatch("mock_cargo_present"))
-					transition(edgeName="t027",targetState="cargo_absent_wait",cond=whenDispatch("mock_cargo_absent"))
+					 transition(edgeName="t032",targetState="cargo_present_wait",cond=whenDispatch("mock_cargo_present"))
+					transition(edgeName="t033",targetState="cargo_absent_wait",cond=whenDispatch("mock_cargo_absent"))
 				}	 
 				state("cargo_present_wait") { //this:State
 					action { //it:State
@@ -57,7 +57,7 @@ class Mock_sensor ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t028",targetState="state_cargo_present",cond=whenRequest("is_cargo_present"))
+					 transition(edgeName="t034",targetState="state_cargo_present",cond=whenRequest("is_cargo_present"))
 				}	 
 				state("cargo_absent_wait") { //this:State
 					action { //it:State
@@ -66,7 +66,7 @@ class Mock_sensor ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t029",targetState="state_cargo_absent",cond=whenRequest("is_cargo_present"))
+					 transition(edgeName="t035",targetState="state_cargo_absent",cond=whenRequest("is_cargo_present"))
 				}	 
 				state("state_cargo_present") { //this:State
 					action { //it:State

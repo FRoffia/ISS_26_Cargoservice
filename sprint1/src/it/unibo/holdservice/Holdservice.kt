@@ -39,9 +39,9 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t030",targetState="look_for_empty_slot",cond=whenRequest("reserve_slot"))
-					transition(edgeName="t031",targetState="set_full",cond=whenDispatch("test_hold_full"))
-					transition(edgeName="t032",targetState="set_empty",cond=whenDispatch("test_hold_empty"))
+					 transition(edgeName="t036",targetState="look_for_empty_slot",cond=whenRequest("reserve_slot"))
+					transition(edgeName="t037",targetState="set_full",cond=whenDispatch("test_hold_full"))
+					transition(edgeName="t038",targetState="set_empty",cond=whenDispatch("test_hold_empty"))
 				}	 
 				state("look_for_empty_slot") { //this:State
 					action { //it:State

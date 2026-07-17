@@ -36,6 +36,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
+						forward("send_home", "send_home(X)" ,"cargorobot" ) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -94,7 +95,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+					 transition( edgeName="goto",targetState="checkloadqueue", cond=doswitch() )
 				}	 
 				state("check_ioport") { //this:State
 					action { //it:State
@@ -125,7 +126,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+					 transition( edgeName="goto",targetState="checkloadqueue", cond=doswitch() )
 				}	 
 				state("send_accept") { //this:State
 					action { //it:State
@@ -161,7 +162,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
+					 transition( edgeName="goto",targetState="checkloadqueue", cond=doswitch() )
 				}	 
 				state("engaged") { //this:State
 					action { //it:State
@@ -172,9 +173,21 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t012",targetState="disengaged",cond=whenReply("cargo_load_success"))
+					 transition(edgeName="t012",targetState="checkloadqueue",cond=whenReply("cargo_load_success"))
 					transition(edgeName="t013",targetState="disengaged",cond=whenReply("cargo_load_failed"))
 					transition(edgeName="t014",targetState="outOfService",cond=whenDispatch("sensorError"))
+				}	 
+				state("checkloadqueue") { //this:State
+					action { //it:State
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+				 	 		stateTimer = TimerActor("timer_checkloadqueue", 
+				 	 					  scope, context!!, "local_tout_"+name+"_checkloadqueue", 10.toLong() )  //OCT2023
+					}	 	 
+					 transition(edgeName="t015",targetState="s0",cond=whenTimeout("local_tout_"+name+"_checkloadqueue"))   
+					transition(edgeName="t016",targetState="evaluate_request",cond=whenRequest("load_request"))
 				}	 
 				state("outOfService") { //this:State
 					action { //it:State
@@ -185,8 +198,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t015",targetState="outOfService",cond=whenRequest("load_request"))
-					transition(edgeName="t016",targetState="s0",cond=whenDispatch("sensorOK"))
+					 transition(edgeName="t017",targetState="outOfService",cond=whenRequest("load_request"))
+					transition(edgeName="t018",targetState="s0",cond=whenDispatch("sensorOK"))
 				}	 
 			}
 		}

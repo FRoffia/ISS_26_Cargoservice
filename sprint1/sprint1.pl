@@ -15,9 +15,15 @@ dispatch( container_in, container_in(X) ).
 request( moverobot, moverobot(TARGETX,TARGETY,STEPTIME) ).
 reply( moverobotdone, moverobotok(ARG) ).  %%for moverobot
 reply( moverobotfailed, moverobotfailed(PLANDONE,PLANTODO) ).  %%for moverobot
+request( setdirection, dir(D) ).
+reply( setdirectiondone, pos(PX,PY) ).  %%for setdirection
+dispatch( setrobotstate, setpos(X,Y,D) ).
+request( getrobotstate, getrobotstate(ARG) ).
+reply( robotstate, robotstate(POS,DIR) ).  %%for getrobotstate
 request( handle_cargo_load, handle_cargo_load(TARGET_SLOT) ).
 reply( cargo_load_success, cargo_load_success(X) ).  %%for handle_cargo_load
 reply( cargo_load_failed, cargo_load_failed(X) ).  %%for handle_cargo_load
+dispatch( send_home, send_home(X) ).
 dispatch( sensorError, sensorError(X) ).
 dispatch( sensorOK, sensorOK(X) ).
 dispatch( mock_cargo_present, mock_cargo_present(X) ).
@@ -25,6 +31,7 @@ dispatch( mock_cargo_absent, mock_cargo_absent(X) ).
 dispatch( test_hold_full, test_hold_full(X) ).
 dispatch( test_hold_empty, test_hold_empty(X) ).
 dispatch( setDelay, setDelay(X) ).
+dispatch( already_home, already_home(X) ).
 %====================================================================================
 context(ctx_cargoservice, "localhost",  "TCP", "8010").
 context(ctxrobotsmart, "127.0.0.1",  "TCP", "8020").

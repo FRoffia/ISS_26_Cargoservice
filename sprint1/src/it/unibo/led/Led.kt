@@ -41,7 +41,7 @@ class Led ( name: String, scope: CoroutineScope, isconfined: Boolean=false, isdy
 				}	 
 				state("off") { //this:State
 					action { //it:State
-						CommUtils.outgreen("led | DISENGAGED: led off")
+						CommUtils.outblack("led | DISENGAGED: led off")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -50,7 +50,7 @@ class Led ( name: String, scope: CoroutineScope, isconfined: Boolean=false, isdy
 				}	 
 				state("on") { //this:State
 					action { //it:State
-						CommUtils.outblack("led | ENGAGED or OUT OF ORDER: led on")
+						CommUtils.outblack("led | ENGAGED o OUT OF ORDER: led on")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
