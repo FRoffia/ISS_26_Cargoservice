@@ -201,7 +201,6 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 									val coords = positions[Destination]!!
 									X = coords[0]
 									Y = coords[1]
-						CommUtils.outyellow("cargorobot | cheking if already home, currently in position $X , $Y , msg: $input_cur_pos, cur: ${cur_coordinates[0]} , ${cur_coordinates[1]}")
 						if(  X != cur_coordinates[0] && Y != cur_coordinates[1]  
 						 ){CommUtils.outgreen("cargorobot | moving towards home...")
 						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  

@@ -63,7 +63,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 								 Delay = payloadArg(0).toInt()
 								    			DelayLong = Delay.toLong() 
 						}
-						CommUtils.outblue("cargoservice | setting delay for testing: $Delay ms")
+						CommUtils.outyellow("cargoservice | setting delay for testing: $Delay ms")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
