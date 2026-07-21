@@ -25,4 +25,7 @@ with Diagram('devicesArch', show=False, outformat='png', graph_attr=graphattr) a
   with Cluster('env'):
      sys = Custom('','./qakicons/system.png')
 ### see https://renenyffenegger.ch/notes/tools/Graphviz/attributes/label/HTML-like/index
+     with Cluster('ctx_sensor', graph_attr=nodeattr):
+          sensorservice=Custom('sensorservice','./qakicons/symActorWithobjSmall.png')
+     sys >> Edge( label='sonardata', **evattr, decorate='true', fontcolor='darkgreen') >> sensorservice
 diag

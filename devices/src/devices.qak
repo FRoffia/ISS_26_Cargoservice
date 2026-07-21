@@ -1,1 +1,30 @@
 System devices
+	mqttBroker "localhost" : 1883 eventTopic "distance"
+
+Event sonardata : sonardata(D)
+
+Context ctx_sensor ip [host="localhost" port=8030]
+
+QActor sensorservice context ctx_sensor{
+	State s0 initial{
+		subscribe "distance"
+	}
+	Goto work
+	
+	State work{
+		
+	}
+	Transition t0
+		whenEvent sonardata -> processdata
+	
+	State processdata{
+		onMsg(sonardata : sonardata(D)){
+			[#
+				val Distance = payloadArg(0)	
+			#]
+		println("sensorservice | Distance = $Distance") color green
+		}	
+	}
+	Goto work
+	
+}

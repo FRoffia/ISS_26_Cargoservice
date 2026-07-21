@@ -14,89 +14,141 @@
     <div class="body">
 
         <h2>Punto di partenza</h2>
-           <p>
-            Nello sprint 1, grazie alla analisi del problema e implementazione .., abbiamo implementato
-            i componenti che riguardano il core business, ovvero cargoservice, cargorobot e holdservice. Gli altri componenti come
-            sensor e le periferiche di IOPort sono state modellate come mock per agevolare i test.
+        <p>
+            Nello <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint1_v1.html">Sprint 1</a>, grazie
+            all'analisi del problema e alla relativa implementazione, abbiamo realizzato i componenti che
+            costituiscono il core business del sistema, ovvero <bc>cargoservice</bc>, <bc>cargorobot</bc> e
+            <bc>holdservice</bc>. Gli altri componenti, ovvero <bc>sensor</bc> e le periferiche della
+            <bc>IOPort</bc>, sono stati invece modellati come <em>mock</em>, in modo da poter scambiare con
+            <bc>cargoservice</bc> gli stessi messaggi che le implementazioni reali produrranno, senza per
+            questo dover attendere il loro sviluppo effettivo.
+        </p>
+        <!-- FOTO ARCH: inserire qui l'architettura al termine dello Sprint1 -->
 
-            FOTO ARCH
-           </p>
         <h2>Goal</h2>
-            <p>
-                In questo sprint svolgeremo analisi del problema e implementazione dei componenti sensor e led, che si trovano
-                sullo stesso nodo. (link a dove viene detta questa cosa). In particolare, alla fine dello Sprint 2, il sistema
-                dovrà essere in grado di:
-                <ul>
-                    <li>rilevare la presenza di un container presso la IOPort</li>
-                    <li>segnalare la presenza di un container presso la IOPort a cargoservice</li>
-                    <li>gestire un eventuale guasto del sensore e una eventuale recovery dallo stato di guasto (link a domanda)</li>
-                    <li>lampeggiare il led di stato se il sistema è ENGAGED, spegnerlo se DISENGAGED</li>
-                </ul>
-            </p>
+        <p>
+            In questo sprint svolgiamo l'analisi del problema e l'implementazione dei componenti
+            <bc>sensor</bc> e <bc>led</bc>, che, come precisato dal committente, risiedono sullo stesso nodo
+            fisico (un Raspberry Pi), separato sia dal nodo che ospita <bc>cargoservice</bc> sia dal nodo di
+            bordo del <bc>cargorobot</bc>. In particolare, al termine dello Sprint 2 il sistema dovrà essere in
+            grado di:
+        </p>
+        <ul>
+            <li>rilevare la presenza di un container presso la <bc>IOPort</bc>;</li>
+            <li>segnalare a <bc>cargoservice</bc> la presenza del container presso la <bc>IOPort</bc>;</li>
+            <li>gestire un eventuale guasto del sensore e il conseguente rientro dallo stato di guasto, non
+                appena il sensore torni a fornire misurazioni valide;</li>
+            <li>far lampeggiare il led di stato quando il sistema è <tt>ENGAGED</tt>, e tenerlo spento in tutti
+                gli altri casi.</li>
+        </ul>
+        <p>
+            Questo sprint sostituisce quindi, con implementazioni reali, i mock di <bc>sensor</bc> introdotti
+            nello Sprint 1, senza alterare la logica interna di <bc>cargoservice</bc>, che continuerà a
+            scambiare esattamente gli stessi messaggi già definiti in precedenza.
+        </p>
 
         <h2 id="domande">Domande al committente</h2>
+        <p>
+            In questo sprint non sono emerse nuove domande rilevanti da porre al committente: i dubbi relativi
+            al comportamento del sensore (soglie di distanza e modalità di rientro dallo stato di
+            <tt>OUT_OF_SERVICE</tt>) erano già stati chiariti nello
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#domande">Sprint 0</a>.
+        </p>
 
         <h2>Analisi dei Requisiti</h2>
-            <p>
-                L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un approfondito
-                <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">documento di analisi dei requisiti</a>.
-            </p>
+        <p>
+            L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un approfondito
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">documento di analisi dei requisiti</a>.
+        </p>
 
         <h2>Analisi del Problema</h2>
-            <h3>sensor</h3>
-            <p>
-                Partiamo dall'analisi del problema del componente sensor, che attraverso un sensore a ultrasuoni, deve 
-                essere in grado di rilevare la distanza di frotne a io port... ... 
-                Da requisiti, il tipico flusso di lavoro del sonar è il seguente:
 
-                <ol>
-                    <li>Il sonar esegue una rilevazione della distanza D</li>
-                    <li>A seconda di D, è necessario interpretare la distanza come:
-                        <ul>
-                            <li>D < DFREE/2: container presente presso la IOPort</li>
-                            <li>DFREE/2 < D < DFREE: IOPort libera</li>
-                            <li>D > DFREE: sensore guasto</li>
-                        </ul>
-                        
-                    </li>
-                    <div class="remark">
-                        ANALISI: il sensore fisico è stato fortnito dal committente, con richiesta di essere montato
-                        su un dispositvo Raspberry. Inoltre, ci vengono fortnite le librerie python per gestirne il funzionamento,
-                        ottenendo le rilevazioni per poi elaborarle. Per gestire la distanza come da reuisiti bisogna
-                        trasformare queste rilevazioni in dati utili al nostro sistema, quindi bisogna decidere quale componente
-                        ha l'onere di questa elaborazione. Abbiamo deciso di creare un componente chiamato sensorservice, che
-                        si trova sullo stesso nodo del sensore fisico, che ha il compito di ricevere i dati grezzi inviati dal sensore
-                        e inviare i mesaggi necessari a cargoservice ... etc ...
-                    </div>
-                    <li>Se il sistema entra in OOS, ne uscirà alla prima misurazione D < DFREE</li>
-                </ol>
-
-                (LINK PYTHON)
-            </p>
-            <h3>led</h3>
-            <p>
-                Il led è un segnale visivo che indica lo stato di funzionamento del sistema, secondo le seguenti regole:
+        <h3>sensor</h3>
+        <p>
+            Partiamo dall'analisi del problema del componente <bc>sensor</bc> che, attraverso un sensore a
+            ultrasuoni, deve essere in grado di rilevare la distanza tra la <bc>IOPort</bc> ed un eventuale
+            container posto di fronte ad essa. Dai requisiti, il tipico flusso di lavoro del sonar è il
+            seguente:
+        </p>
+        <ol>
+            <li>Il sonar esegue periodicamente una misurazione della distanza D.</li>
+            <li>A seconda del valore di D, è necessario interpretare la misurazione come:
                 <ul>
-                    <li>Lampeggia quando il sistema è ENGAGED</li>
-                    <li>Spento in tutti gli altri casi</li>
+                    <li><tt>D <= DFREE/2</tt>: un container è presente presso la <bc>IOPort</bc>;</li>
+                    <li><tt>DFREE/2 < D <= DFREE</tt>: la misurazione è valida e la <bc>IOPort</bc> è
+                        libera;</li>
+                    <li><tt>D < DFREE</tt> per almeno 3 secondi consecutivi: il sensore va considerato
+                        guasto, e il sistema deve passare in stato <tt>OUT_OF_SERVICE</tt>.</li>
                 </ul>
-                <div class="remark">
-                    ANALISI: Da richiesta del committente il led si trova sullo stesso nodo del sensor.
-                    Come per il sensore, il led fisico deve essere comandto attraverso i GPIO del raspberry, quindi scegliamo
-                    di implementare il comando attraverso Python per semplicità d'uso e ampia gamma di librerie. Decidiamo
-                    di creare l'attore ledservice, nello stesso conntesto ctx_sensor di sensorservice, per ricevere i comandi
-                    da cargoservice per accensione e spegnimento del led. ledservice comunica attraverso mqtt al programma python
-                    per comandare il led.
-                </div>
+            </li>
+            <li>Il sistema esce dallo stato <tt>OUT_OF_SERVICE</tt> non appena il sonar torna a rilevare una
+                misurazione valida, ovvero <tt>D <= DFREE</tt>, coerentemente con quanto già chiarito dal
+                committente nello Sprint 0.</li>
+        </ol>
+        <div class="remark">
+            ANALISI: il sensore fisico è stato fornito dal committente, con la richiesta esplicita di essere
+            montato su un dispositivo Raspberry Pi; per la gestione dei segnali a basso livello attraversio GPIO,
+            decidiamo di usare Python per la semplicità d'uso e l'abbondanza di librerie di controllo hardware.
+            Questo middleware restituisce quindi le misurazioni grezze rilevate dal sonar.
+            <br><br>
+            Per soddisfare i requisiti, tali misurazioni grezze devono essere elaborate e tradotte in
+            informazioni di più alto livello, coerenti con il resto del sistema (presenza/assenza del
+            container, stato di guasto). È quindi necessario individuare quale componente abbia la
+            responsabilità di questa elaborazione.
+            <br><br>
+            Decidiamo di introdurre un attore, chiamato <bc>sensorservice</bc>, collocato sullo stesso nodo del
+            sensore fisico. Questo attore ha il compito di:
+            <ul>
+                <li>ricevere periodicamente i dati grezzi (distanza D) prodotti dallo script Python di
+                    controllo del sensore;</li>
+                <li>interpretare tali dati secondo le soglie definite dai requisiti, tenendo conto anche della
+                    durata delle misurazioni (ad esempio, i 3 secondi consecutivi necessari per dichiarare il
+                    sensore guasto): una singola lettura anomala non deve quindi essere sufficiente a
+                    determinare lo stato <tt>OUT_OF_SERVICE</tt>;</li>
+                <li>notificare a <bc>cargoservice</bc>, tramite scambio di messaggi, i cambiamenti di stato
+                    rilevanti.</li>
+            </ul>
+            <br>
+            Dal punto di vista dei messaggi, <bc>sensorservice</bc> andrà quindi a sostituire il mock introdotto
+            nello Sprint 1, continuando a rispondere alle request <tt>is_cargo_present</tt> con
+            <tt>cargo_present</tt> oppure <tt>cargo_absent</tt>, e inviando in modo asincrono il dispatch
+            <tt>container_in</tt> non appena rileva l'arrivo di un container presso la <bc>IOPort</bc>, così
+            come già previsto nella logica di <bc>cargoservice</bc>.
+        </div>
+        <!-- LINK PYTHON -->
 
-                (LINK PYTHON)
-            </p>
+        <h3>led</h3>
+        <p>
+            Il <bc>led</bc> è un segnale visivo che indica lo stato di funzionamento del sistema, secondo le
+            seguenti regole:
+        </p>
+        <ul>
+            <li>lampeggia quando il sistema si trova nello stato <tt>ENGAGED</tt>;</li>
+            <li>rimane spento in tutti gli altri casi (<tt>DISENGAGED</tt> oppure <tt>OUT_OF_SERVICE</tt>).</li>
+        </ul>
+        <div class="remark">
+            ANALISI: come richiesto dal committente, il led si trova fisicamente sullo stesso nodo del
+            <bc>sensor</bc>. Analogamente al sensore, anche il led fisico deve essere comandato tramite i pin
+            GPIO del Raspberry Pi; scegliamo quindi di implementare il relativo controllo in Python, per
+            semplicità d'uso e per la disponibilità di librerie già collaudate per la gestione dei GPIO.
+            <br><br>
+            Introduciamo l'attore <bc>ledservice</bc>, collocato nello stesso contesto <tt>ctx_sensor</tt> di
+            <bc>sensorservice</bc>, con il compito di ricevere da <bc>cargoservice</bc> i comandi di accensione
+            (lampeggio) e spegnimento del led, in corrispondenza dei cambi di stato del sistema
+            (<tt>ENGAGED</tt>/<tt>DISENGAGED</tt>/<tt>OUT_OF_SERVICE</tt>). <bc>ledservice</bc> comunica quindi,
+            tramite MQTT, con il programma Python responsabile dell'effettivo comando del led sul Raspberry Pi.
+        </div>
+        <!-- LINK PYTHON -->
 
         <h2>Test Plans</h2>
-        
+        <p>
+
+        </p>
 
         <h2>Architettura</h2>
-        
+        <p>
+
+        </p>
 
         <h2 id="deployment">Deployment</h2>
         <p>
@@ -119,10 +171,16 @@
             Il sistema appena lanciato resta in stato DISENGAGED. Per osservare un ciclo di movimentazione, lanciare i
             test.
         </p>
-       
+
         <h2>Considerazioni Sprint 2 e Goal Sprint 3</h2>
+        <p>
+
+        </p>
 
         <h3>Goal Sprint 3</h3>
+        <p>
+
+        </p>
 
     </div>
 

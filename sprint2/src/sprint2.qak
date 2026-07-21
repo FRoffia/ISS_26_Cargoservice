@@ -11,7 +11,7 @@ Request  reserve_slot  : reserve_slot(X)
 Reply    reserve_ok    : reserve_ok(N)        for reserve_slot
 Reply    reserve_fail  : reserve_fail(CAUSE)  for reserve_slot
 
-//request e replies per sapere se nu cargo è presente in ioport
+//request e replies per sapere se un cargo è presente in ioport
 Request  is_cargo_present  : is_cargo_present(X)
 Reply    cargo_present     : cargo_present(X) for is_cargo_present
 Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
