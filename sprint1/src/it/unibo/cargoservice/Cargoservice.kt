@@ -51,6 +51,12 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("engaged") { //this:State
 					action { //it:State
+						if( checkMsgContent( Term.createTerm("setDelay(X)"), Term.createTerm("setDelay(D)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 Delay = payloadArg(0).toInt()
+								    			DelayLong = Delay.toLong() 
+						}
+						CommUtils.outyellow("cargoservice | setting delay for testing: $Delay ms")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

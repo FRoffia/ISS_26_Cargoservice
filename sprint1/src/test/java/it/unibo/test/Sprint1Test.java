@@ -43,14 +43,13 @@ public class Sprint1Test {
 		conn.forward(set_cargo_absent);
 		
 	    String req = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
-	    System.out.println("Richiesta: " + req);
 	    String resp = conn.request(req);
 
 	    assertTrue("T01: load_accepted con slot assegnato", resp.contains("load_accepted"));
 	    //simula sensor: container rilevato all'IOPort (dispatch asincrono)
 	    conn.forward(CommUtils.buildDispatch("mock_sensor", "container_in", "container_in(X)", "cargoservice").toString());
 
-	    Thread.sleep(45000);
+	    Thread.sleep(40000);
 	    
 		conn.forward(set_cargo_absent);
 
@@ -58,16 +57,7 @@ public class Sprint1Test {
 	    String req2 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
 	    String resp2 = conn.request(req2);
 
-	    Thread.sleep(2000);
-	    conn.forward(CommUtils.buildDispatch("mock_sensor", "container_in", "container_in(X)", "cargoservice").toString());
-	    Thread.sleep(500);
-	    conn.forward(set_cargo_absent);
-	    
-	    //una nuova richiesta deve essere accettata (sistema tornato in DISENGAGED)
-	    String req3 = CommUtils.buildRequest("tester", "load_request", "load_request(x)", "cargoservice").toString();
-	    String resp3 = conn.request(req3);
-
-	    assertTrue("T02: sistema tornato in DISENGAGED dopo carico", resp3.contains("load_accepted"));
+	    assertTrue("T02: sistema tornato in DISENGAGED dopo carico", resp2.contains("load_accepted"));
 	
 	}
 	

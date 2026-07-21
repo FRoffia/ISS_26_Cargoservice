@@ -88,7 +88,7 @@ QActor cargoservice context ctx_cargoservice {
     			DelayLong = Delay.toLong()#
     		]
     	}
-    	println("cargoservice | setting delay for testing: $Delay ms") color blue
+    	println("cargoservice | setting delay for testing: $Delay ms") color yellow
     }
     Goto disengaged
    

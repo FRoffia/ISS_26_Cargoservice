@@ -47,6 +47,152 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
+					 transition(edgeName="t021",targetState="goto_slot5",cond=whenReply("moverobotdone"))
+					transition(edgeName="t022",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("handle_move_error") { //this:State
+					action { //it:State
+						CommUtils.outred("cargorobot | move error, could not complete cargo load")
+						answer("handle_cargo_load", "cargo_load_failed", "cargo_load_failed(X)"   )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+				}	 
+				state("goto_slot5") { //this:State
+					action { //it:State
+						delay(3000) 
+						CommUtils.outgreen("cargorobot | moving towards slot5...")
+						
+									Destination = "slot5"
+									val coords = positions[Destination]!!
+									X = coords[0]
+									Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t023",targetState="goto_target_slot",cond=whenReply("moverobotdone"))
+					transition(edgeName="t024",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("arrived_at_slot5") { //this:State
+					action { //it:State
+						CommUtils.outmagenta("$name | arrived at slot 5")
+						 
+									val Direction = directions[Destination]!!
+						CommUtils.outmagenta("$name | turning $Direction ...")
+						forward("setrobotstate", "setpos($X,$Y,$Direction)" ,"robotsmart" ) 
+						delay(5000) 
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="goto_target_slot", cond=doswitch() )
+				}	 
+				state("goto_target_slot") { //this:State
+					action { //it:State
+						delay(2000) 
+						CommUtils.outgreen("cargorobot | moving towards $Target_slot...")
+						
+									val coords = positions[Target_slot]!!
+									X = coords[0]
+									Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t025",targetState="cargo_load_done",cond=whenReply("moverobotdone"))
+					transition(edgeName="t026",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+				}	 
+				state("arrived_at_target_slot") { //this:State
+					action { //it:State
+						CommUtils.outmagenta("$name | arrived at target slot")
+						 
+									val Direction = directions[Target_slot]!!
+						forward("setrobotstate", "setpos($X,$Y,$Direction)" ,"robotsmart" ) 
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="cargo_load_done", cond=doswitch() )
+				}	 
+				state("goto_home") { //this:State
+					action { //it:State
+						request("getrobotstate", "getrobotstate(ARG)" ,"robotsmart" )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t027",targetState="evaluate_home",cond=whenReply("robotstate"))
+				}	 
+				state("evaluate_home") { //this:State
+					action { //it:State
+						if( checkMsgContent( Term.createTerm("robotstate(POS,DIR)"), Term.createTerm("robotstate(POS,D)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 
+												input_cur_pos = payloadArg(0)
+												val inner = input_cur_pos.substringAfter("(").substringBefore(")")
+												val parts = inner.split(",")
+												
+												val x = parts[0].trim().toInt()
+												val y = parts[1].trim().toInt()
+												
+												cur_coordinates[0] = x
+												cur_coordinates[1] = y
+												cur_direction = payloadArg(1)
+						}
+						
+									Destination = "home"
+									val coords = positions[Destination]!!
+									X = coords[0]
+									Y = coords[1]
+						if(  X != cur_coordinates[0] && Y != cur_coordinates[1]  
+						 ){CommUtils.outgreen("cargorobot | moving towards home...")
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
+						}
+						else
+						 {forward("already_home", "already_home(X)" ,name ) 
+						 }
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t028",targetState="s0",cond=whenReply("moverobotdone"))
+					transition(edgeName="t029",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					transition(edgeName="t030",targetState="s0",cond=whenDispatch("already_home"))
+				}	 
+				state("arrived_at_home") { //this:State
+					action { //it:State
+						CommUtils.outmagenta("cargorobot | arrived at home")
+						 
+									val Direction = directions[Destination]!!
+						forward("setrobotstate", "setpos($X,$Y,$Direction)" ,"robotsmart" ) 
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t031",targetState="s0",cond=whenReply("setdirectiondone"))
+				}	 
+				state("cargo_load_done") { //this:State
+					action { //it:State
+						delay(2000) 
+						answer("handle_cargo_load", "cargo_load_success", "cargo_load_success(X)"   )  
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
 				}	 
 			}
 		}

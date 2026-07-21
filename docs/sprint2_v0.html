@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="mystyle.css">
+    <meta charset="UTF-8">
+    <title>Sprint 2</title>
+</head>
+<body>
+
+    <div id="top">
+        <h1>Sprint 2_v0: Analisi del Problema e Implementazione di Sensor e Led</h1>
+    </div>
+
+    <div class="body">
+
+        <h2>Punto di partenza</h2>
+           <p>
+            Nello sprint 1, grazie alla analisi del problema e implementazione .., abbiamo implementato
+            i componenti che riguardano il core business, ovvero cargoservice, cargorobot e holdservice. Gli altri componenti come
+            sensor e le periferiche di IOPort sono state modellate come mock per agevolare i test.
+
+            FOTO ARCH
+           </p>
+        <h2>Goal</h2>
+            <p>
+                In questo sprint svolgeremo analisi del problema e implementazione dei componenti sensor e led, che si trovano
+                sullo stesso nodo. (link a dove viene detta questa cosa). In particolare, alla fine dello Sprint 2, il sistema
+                dovrà essere in grado di:
+                <ul>
+                    <li>rilevare la presenza di un container presso la IOPort</li>
+                    <li>segnalare la presenza di un container presso la IOPort a cargoservice</li>
+                    <li>gestire un eventuale guasto del sensore e una eventuale recovery dallo stato di guasto (link a domanda)</li>
+                    <li>lampeggiare il led di stato se il sistema è ENGAGED, spegnerlo se DISENGAGED</li>
+                </ul>
+            </p>
+
+        <h2 id="domande">Domande al committente</h2>
+
+        <h2>Analisi dei Requisiti</h2>
+            <p>
+                L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un approfondito
+                <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">documento di analisi dei requisiti</a>.
+            </p>
+
+        <h2>Analisi del Problema</h2>
+            <h3>sensor</h3>
+            <p>
+                Partiamo dall'analisi del problema del componente sensor, che attraverso un sensore a ultrasuoni, deve 
+                essere in grado di rilevare la distanza di frotne a io port... ... 
+                Da requisiti, il tipico flusso di lavoro del sonar è il seguente:
+
+                <ol>
+                    <li>Il sonar esegue una rilevazione della distanza D</li>
+                    <li>A seconda di D, è necessario interpretare la distanza come:
+                        <ul>
+                            <li>D < DFREE/2: container presente presso la IOPort</li>
+                            <li>DFREE/2 < D < DFREE: IOPort libera</li>
+                            <li>D > DFREE: sensore guasto</li>
+                        </ul>
+                        
+                    </li>
+                    <div class="remark">
+                        ANALISI: il sensore fisico è stato fortnito dal committente, con richiesta di essere montato
+                        su un dispositvo Raspberry. Inoltre, ci vengono fortnite le librerie python per gestirne il funzionamento,
+                        ottenendo le rilevazioni per poi elaborarle. Per gestire la distanza come da reuisiti bisogna
+                        trasformare queste rilevazioni in dati utili al nostro sistema, quindi bisogna decidere quale componente
+                        ha l'onere di questa elaborazione. Abbiamo deciso di creare un componente chiamato sensorservice, che
+                        si trova sullo stesso nodo del sensore fisico, che ha il compito di ricevere i dati grezzi inviati dal sensore
+                        e inviare i mesaggi necessari a cargoservice ... etc ...
+                    </div>
+                    <li>Se il sistema entra in OOS, ne uscirà alla prima misurazione D < DFREE</li>
+                </ol>
+
+                (LINK PYTHON)
+            </p>
+            <h3>led</h3>
+            <p>
+                Il led è un segnale visivo che indica lo stato di funzionamento del sistema, secondo le seguenti regole:
+                <ul>
+                    <li>Lampeggia quando il sistema è ENGAGED</li>
+                    <li>Spento in tutti gli altri casi</li>
+                </ul>
+                <div class="remark">
+                    ANALISI: Da richiesta del committente il led si trova sullo stesso nodo del sensor.
+                    Come per il sensore, il led fisico deve essere comandto attraverso i GPIO del raspberry, quindi scegliamo
+                    di implementare il comando attraverso Python per semplicità d'uso e ampia gamma di librerie. Decidiamo
+                    di creare l'attore ledservice, nello stesso conntesto ctx_sensor di sensorservice, per ricevere i comandi
+                    da cargoservice per accensione e spegnimento del led. ledservice comunica attraverso mqtt al programma python
+                    per comandare il led.
+                </div>
+
+                (LINK PYTHON)
+            </p>
+
+        <h2>Test Plans</h2>
+        
+
+        <h2>Architettura</h2>
+        
+
+        <h2 id="deployment">Deployment</h2>
+        <p>
+            Uno dei pregi del linguaggio di modellazione QAK è la possibilità di creare un modello eseguibile del
+            sistema. Al termine di questo sprint è stato infatti realizzato tale modello eseguibile, di cui è
+            possibile effettuare il deployment seguendo questi passi:
+        </p>
+        <ol>
+            <li>Creare e avviare i container di supporto per l'ambiente virtuale del robot con docker compose,
+                definiti nel file
+                <a href="https://github.com/anatali/issLab2026/blob/main/robotsmart26/yamls/robotsmart26.yaml">robotsmart26.yaml</a>
+                (le istruzioni per il deployment si trovano in fondo al file).</li>
+            <li>Collegarsi alla pagina web dell'ambiente virtuale, all'indirizzo
+                <a href="http://localhost:8085/">http://localhost:8085/</a>.</li>
+            <li>Importare il progetto sprint1 in Eclipse come progetto Gradle.</li>
+            <li>Lanciare il sistema tramite la Gradle Task run, oppure con il comando <code>gradlew run</code>.</li>
+            <li>Per eseguire i test, in un prompt dei comandi separato, lanciare il comando <code>gradlew test</code>.</li>
+        </ol>
+        <p>
+            Il sistema appena lanciato resta in stato DISENGAGED. Per osservare un ciclo di movimentazione, lanciare i
+            test.
+        </p>
+       
+        <h2>Considerazioni Sprint 2 e Goal Sprint 3</h2>
+
+        <h3>Goal Sprint 3</h3>
+
+    </div>
+
+
+    <div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px; font-size: large;">
+        By Andrea Gazzola <img src="img/fotoA.jpg" width="100px"> and Francesco Roffia <img src="img/fotoF.png" width="100px"> <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">
+        GIT repo: https://github.com/FRoffia/ISS_26_Cargoservice</a>
+    </div>
+</body>
+</html>
