@@ -16,8 +16,15 @@ Request  is_cargo_present  : is_cargo_present(X)
 Reply    cargo_present     : cargo_present(X) for is_cargo_present
 Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
 
+//messaggi di mock pushbutton comandato da programma python di testing
+Event 	 push : push(X)
+Request  load_request  : load_request(X)
+Reply    load_accepted : load_accepted(SLOT)  for load_request
+Reply    load_rejected : load_rejected(X)     for load_request
+Reply    retrylater    : retrylater(X)        for load_request
+
 Context  ctx_sensor ip [host="localhost" port=8030]
-Context  ctx_cargoservice ip [host="127.0.0.1" port= 8010]
+Context  ctx_cargoservice ip [host="127.0.0.1" port=8010]
 
 ExternalQActor cargoservice context ctx_cargoservice
 
@@ -36,7 +43,17 @@ QActor sensorservice context ctx_sensor{
 	State wait_for_data{
 	}
 	Transition t0
+		whenRequest is_cargo_present -> handle_request
 		whenEvent sonardata -> processdata
+		
+	State handle_request {
+		if [# container_present #]{
+			replyTo is_cargo_present with cargo_present : cargo_present(X)
+		} else {
+			replyTo is_cargo_present with cargo_absent : cargo_absent(X)
+		}
+	}
+	Goto wait_for_data
 
 	State processdata{
 		onMsg(sonardata : sonardata(D)){
@@ -72,4 +89,23 @@ QActor sensorservice context ctx_sensor{
 		}
 	}
 	Goto wait_for_data
+}
+
+QActor mock_pusbutton context ctx_sensor{
+	State s0 initial {
+		subscribe "distance"
+	}
+	Goto work
+	
+	State work{
+		//aspetto evento dal programma python
+	}
+	Transition t0
+		whenEvent push -> send_load_request
+	
+	State send_load_request {
+		println("mock_pushbutton | sent load_request")
+		request cargoservice -m load_request : load_request(X)
+	}
+	Goto work
 }

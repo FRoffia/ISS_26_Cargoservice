@@ -52,7 +52,23 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t00",targetState="processdata",cond=whenEvent("sonardata"))
+					 transition(edgeName="t00",targetState="handle_request",cond=whenRequest("is_cargo_present"))
+					transition(edgeName="t01",targetState="processdata",cond=whenEvent("sonardata"))
+				}	 
+				state("handle_request") { //this:State
+					action { //it:State
+						if(  container_present  
+						 ){answer("is_cargo_present", "cargo_present", "cargo_present(X)"   )  
+						}
+						else
+						 {answer("is_cargo_present", "cargo_absent", "cargo_absent(X)"   )  
+						 }
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="wait_for_data", cond=doswitch() )
 				}	 
 				state("processdata") { //this:State
 					action { //it:State
