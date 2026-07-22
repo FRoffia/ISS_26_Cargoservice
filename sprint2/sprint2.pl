@@ -35,12 +35,12 @@ dispatch( already_home, already_home(X) ).
 %====================================================================================
 context(ctx_cargoservice, "localhost",  "TCP", "8010").
 context(ctxrobotsmart, "127.0.0.1",  "TCP", "8020").
+context(ctx_sensor, "127.0.0.2",  "TCP", "8030").
  qactor( robotsmart, ctxrobotsmart, "external").
+  qactor( sensorservice, ctx_sensor, "external").
   qactor( cargoservice, ctx_cargoservice, "it.unibo.cargoservice.Cargoservice").
  static(cargoservice).
   qactor( cargorobot, ctx_cargoservice, "it.unibo.cargorobot.Cargorobot").
  static(cargorobot).
-  qactor( mock_sensor, ctx_cargoservice, "it.unibo.mock_sensor.Mock_sensor").
- static(mock_sensor).
   qactor( holdservice, ctx_cargoservice, "it.unibo.holdservice.Holdservice").
  static(holdservice).

@@ -16,7 +16,7 @@ Request  is_cargo_present  : is_cargo_present(X)
 Reply    cargo_present     : cargo_present(X) for is_cargo_present
 Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
 
-//evento per quando un container viene inserito nella ioport
+//messaggio per quando un container viene inserito nella ioport
 Dispatch    container_in  : container_in(X)
 
 //request e replies per muovere il robotsmart
@@ -52,10 +52,11 @@ Dispatch already_home     : already_home(X)
 
 Context  ctx_cargoservice ip [host="localhost" port= 8010]
 Context  ctxrobotsmart    ip [host="127.0.0.1" port=8020]
-//Context  ctx_sensor       ip [host="127.0.0.2" port=8030]
+Context  ctx_sensor       ip [host="127.0.0.2" port=8030]
 //Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
 
-ExternalQActor robotsmart context ctxrobotsmart
+ExternalQActor robotsmart 	 context ctxrobotsmart
+ExternalQActor sensorservice context ctx_sensor
 
 //attore principale del core business del sistema.
 QActor cargoservice context ctx_cargoservice {
@@ -125,7 +126,7 @@ QActor cargoservice context ctx_cargoservice {
 		}
 		
 		//richiesta sincrona a ioport per sapere se c'è già un container, in caso rispondo a load request con retrylater
-		request mock_sensor -m is_cargo_present : is_cargo_present(X)
+		request sensorservice -m is_cargo_present : is_cargo_present(X)
 	}
 	Transition t0
 		whenReply cargo_present -> retry_later
@@ -192,11 +193,14 @@ QActor cargoservice context ctx_cargoservice {
     State outOfService {
     	//gestisco out of service
     	println("cargoservice | sensor error: OUT OF SERVICE!") color red
-    	replyTo load_request with retrylater : retrylater(X)
     }
     Transition t0
-     whenRequest load_request -> outOfService
+     whenRequest load_request -> reply_oos
      whenMsg sensorOK -> s0
+     
+    State reply_oos {
+    	replyTo load_request with retrylater : retrylater(X)
+    } Goto outOfService
     
 }
 
@@ -407,47 +411,6 @@ QActor cargorobot context ctx_cargoservice {
 		replyTo handle_cargo_load with cargo_load_success : cargo_load_success(X)
 	}
 	Goto s0
-}
-
-QActor mock_sensor context ctx_cargoservice {
-    State s0 initial {}
-    Goto work
-    State work {
-        println("mock sonar | working...") color blue
-    }
-    Transition t0
-    	whenMsg mock_cargo_present -> cargo_present_wait
-    	whenMsg mock_cargo_absent -> cargo_absent_wait
-    	
-    State cargo_present_wait {
-    	
-    }
-    Transition t0
-    	whenRequest is_cargo_present -> state_cargo_present
-    	
-    State cargo_absent_wait {
-    	
-    }
-    Transition t0
-    	whenRequest is_cargo_present -> state_cargo_absent
-    	
-   State state_cargo_present {
-   		onMsg(is_cargo_present : is_cargo_present(X)){
-    		replyTo is_cargo_present with cargo_present : cargo_present(X)
-    		println("mock sonar | cargo set to present") color blue
-    	}
-   }
-   Goto s0
-    
-    State state_cargo_absent {
-    	onMsg(is_cargo_present : is_cargo_present(X)){
-    		replyTo is_cargo_present with cargo_absent : cargo_absent(X)
-    		println("mock sonar | cargo set to absent") color blue
-    	}
-    	
-    }
-    Goto s0
-    
 }
 
 QActor holdservice context ctx_cargoservice{

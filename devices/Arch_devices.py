@@ -27,5 +27,8 @@ with Diagram('devicesArch', show=False, outformat='png', graph_attr=graphattr) a
 ### see https://renenyffenegger.ch/notes/tools/Graphviz/attributes/label/HTML-like/index
      with Cluster('ctx_sensor', graph_attr=nodeattr):
           sensorservice=Custom('sensorservice','./qakicons/symActorWithobjSmall.png')
+     with Cluster('ctx_cargoservice', graph_attr=nodeattr):
+          cargoservice=Custom('cargoservice(ext)','./qakicons/externalQActor.png')
      sys >> Edge( label='sonardata', **evattr, decorate='true', fontcolor='darkgreen') >> sensorservice
+     sensorservice >> Edge(color='blue', style='solid',  decorate='true', label='<sensorError &nbsp; sensorOK &nbsp; container_in &nbsp; >',  fontcolor='blue') >> cargoservice
 diag

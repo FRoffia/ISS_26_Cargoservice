@@ -105,7 +105,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 												Cur_reserved_slot = payloadArg(0)
 								CommUtils.outblack("cargoservice | Reserved slot: $Cur_reserved_slot")
 						}
-						request("is_cargo_present", "is_cargo_present(X)" ,"mock_sensor" )  
+						request("is_cargo_present", "is_cargo_present(X)" ,"sensorservice" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -192,14 +192,23 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				state("outOfService") { //this:State
 					action { //it:State
 						CommUtils.outred("cargoservice | sensor error: OUT OF SERVICE!")
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition(edgeName="t017",targetState="reply_oos",cond=whenRequest("load_request"))
+					transition(edgeName="t018",targetState="s0",cond=whenDispatch("sensorOK"))
+				}	 
+				state("reply_oos") { //this:State
+					action { //it:State
 						answer("load_request", "retrylater", "retrylater(X)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t017",targetState="outOfService",cond=whenRequest("load_request"))
-					transition(edgeName="t018",targetState="s0",cond=whenDispatch("sensorOK"))
+					 transition( edgeName="goto",targetState="outOfService", cond=doswitch() )
 				}	 
 			}
 		}

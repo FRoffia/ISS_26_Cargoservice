@@ -1,30 +1,75 @@
 System devices
 	mqttBroker "localhost" : 1883 eventTopic "distance"
-
+	
+//evento dal sensore fisico, dal programma sensor.py, attraverso mqtt sul topic "distance"
 Event sonardata : sonardata(D)
 
-Context ctx_sensor ip [host="localhost" port=8030]
+//messaggio per quando un container viene inserito nella ioport
+Dispatch    container_in  : container_in(X)
+
+//messaggio di errore e di recovery del sensor
+Dispatch sensorError : sensorError(X)
+Dispatch sensorOK    : sensorOK(X)
+
+//request e replies per sapere se un cargo è presente in ioport
+Request  is_cargo_present  : is_cargo_present(X)
+Reply    cargo_present     : cargo_present(X) for is_cargo_present
+Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
+
+Context  ctx_sensor ip [host="localhost" port=8030]
+Context  ctx_cargoservice ip [host="127.0.0.1" port= 8010]
+
+ExternalQActor cargoservice context ctx_cargoservice
 
 QActor sensorservice context ctx_sensor{
+	[#
+		val DFREE = 100
+		var container_present = false
+		var out_of_service = false
+		var oos_counter = 0
+	#]
 	State s0 initial{
 		subscribe "distance"
 	}
-	Goto work
-	
-	State work{
-		
+	Goto wait_for_data
+
+	State wait_for_data{
 	}
 	Transition t0
 		whenEvent sonardata -> processdata
-	
+
 	State processdata{
 		onMsg(sonardata : sonardata(D)){
-			[#
-				val Distance = payloadArg(0)	
-			#]
-		println("sensorservice | Distance = $Distance") color green
-		}	
+			[# val Distance = payloadArg(0).toInt() #]
+			println("sensorservice | Distance = $Distance") color green
+
+			//gestione out of service
+			if [# Distance > DFREE #] {
+				[# oos_counter += 1 #]
+				if [# oos_counter >= 2 && !out_of_service #] {
+					[# out_of_service = true #]
+					forward cargoservice -m sensorError : sensorError(X)
+				}
+			} else {
+				[# oos_counter = 0 #]
+				if [# out_of_service #] {
+					[# out_of_service = false #]
+					forward cargoservice -m sensorOK : sensorOK(X)
+				}
+			}
+
+			//gestione presenza cargo
+			if [# !out_of_service #] {
+				if [# Distance < DFREE/2 #] {
+					if [# !container_present #] {
+						[# container_present = true #]
+						forward cargoservice -m container_in : container_in(X)
+					}
+				} else {
+					[# container_present = false #]
+				}
+			}
+		}
 	}
-	Goto work
-	
+	Goto wait_for_data
 }

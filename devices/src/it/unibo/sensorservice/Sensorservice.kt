@@ -29,6 +29,11 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
+		
+				val DFREE = 100
+				var container_present = false
+				var out_of_service = false
+				var oos_counter = 0
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -38,9 +43,9 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="work", cond=doswitch() )
+					 transition( edgeName="goto",targetState="wait_for_data", cond=doswitch() )
 				}	 
-				state("work") { //this:State
+				state("wait_for_data") { //this:State
 					action { //it:State
 						//genTimer( actor, state )
 					}
@@ -53,16 +58,40 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 					action { //it:State
 						if( checkMsgContent( Term.createTerm("sonardata(D)"), Term.createTerm("sonardata(D)"), 
 						                        currentMsg.msgContent()) ) { //set msgArgList
-								
-												val Distance = payloadArg(0)	
+								 val Distance = payloadArg(0).toInt()  
 								CommUtils.outgreen("sensorservice | Distance = $Distance")
+								if(  Distance > DFREE  
+								 ){ oos_counter += 1  
+								if(  oos_counter >= 2 && !out_of_service  
+								 ){ out_of_service = true  
+								forward("sensorError", "sensorError(X)" ,"cargoservice" ) 
+								}
+								}
+								else
+								 { oos_counter = 0  
+								 if(  out_of_service  
+								  ){ out_of_service = false  
+								 forward("sensorOK", "sensorOK(X)" ,"cargoservice" ) 
+								 }
+								 }
+								if(  !out_of_service  
+								 ){if(  Distance < DFREE/2  
+								 ){if(  !container_present  
+								 ){ container_present = true  
+								forward("container_in", "container_in(X)" ,"cargoservice" ) 
+								}
+								}
+								else
+								 { container_present = false  
+								 }
+								}
 						}
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="work", cond=doswitch() )
+					 transition( edgeName="goto",targetState="wait_for_data", cond=doswitch() )
 				}	 
 			}
 		}
