@@ -62,106 +62,112 @@
         </p>
 
         <h2>Analisi del Problema</h2>
-            <h3>sensor</h3>
-            <p>
-                Partiamo dall'analisi del problema del componente sensor. Questo è un componente fisico, un sensore a ultrasuoni collegato
-                a una scheda Raspberry, che è in grado di misurare la distanza di fronte a se. Questo componente opera tramite codice
-                python fornito da committente, ed è in grado di comunicare le sue letture pubblicandole su broker MQTT(LINK A PROTOBOOK).
-                <br><br>
-                Da requisiti, la business logic legata al funzionamento del sonar è la seguente:
-
-                <ol>
-                    <li>Il sonar esegue una rilevazione della distanza D</li>
-                    <li>A seconda di D, è necessario interpretare la distanza come:
-                        <ul>
-                            <li>D < DFREE/2: container presente presso la IOPort</li>
-                            <li>DFREE/2 < D < DFREE: IOPort libera</li>
-                            <li>D > DFREE: sensore guasto</li>
-                        </ul>
-                        
-                    </li>
-                    <li>Se il sistema entra in OOS, ne uscirà alla prima misurazione D < DFREE</li>
-                    
-                </ol>
-                <div class="remark">
-                    ANALISI: per implementare la logica di business legata al funzionamento del sonar, le scelte plausibili
-                    ci sono sembrate due:
-                    <ol>
-                        <li>
-                            Implementare direttamente in python, quindi utilizzando MQTT non per comunicare le letture del sonar,
-                            ma direttamente i messaggi legati alla logica di business a cargoservice.
-                        </li>
-                        <li>
-                            Creare un attore (es. <em>sensorservice</em>), che tramite subscribe riceve le letture "raw" del sonar, le
-                            interpreta secondo la logica di business, e infine si occupa delle comunicazioni con cargoservice.
-                        </li>
-                    </ol>
-                    Abbiamo deciso di optare per la seconda opzione, dato che è quella che ci permette di tenere separata la
-                    logica di business da quella dei dati.
-                    <br><br>
-                    Un'ulteriore domanda che ci siamo posti è stata dove fosse più opportuno posizionare questo attore, se nel
-                    contesto di cargoservice o in quello del sensore, e quindi su Raspberry. Abbiamo deciso infine di posizionarlo
-                    nel contesto del sensore, seguendo una logica di applicazione distribuita e di <a href="https://it.wikipedia.org/wiki/Edge_computing">Edge Computing</a>.
-                </div>
-                (LINK PYTHON)
-            </p>
-            <h3>led</h3>
-            <p>
-                Il led è un segnale visivo che indica lo stato di funzionamento del sistema, secondo le seguenti regole:
-
         <h3>sensor</h3>
         <p>
-            Partiamo dall'analisi del problema del componente <bc>sensor</bc> che, attraverso un sensore a
-            ultrasuoni, deve essere in grado di rilevare la distanza tra la <bc>IOPort</bc> ed un eventuale
-            container posto di fronte ad essa. Dai requisiti, il tipico flusso di lavoro del sonar è il
-            seguente:
-        </p>
-        <ol>
-            <li>Il sonar esegue periodicamente una misurazione della distanza D.</li>
-            <li>A seconda del valore di D, è necessario interpretare la misurazione come:
+            Partiamo dall'analisi del problema del componente sensor. Questo è un componente fisico, un sensore a ultrasuoni collegato
+            a una scheda Raspberry, che è in grado di misurare la distanza di fronte a se. Questo componente opera tramite codice
+            python fornito da committente, ed è in grado di comunicare le sue letture pubblicandole su <a href="https://anatali.github.io/issLab2026/_static/docs/Protobook.pdf#page=138">broker MQTT</a>.
+            <br><br>
+            Da requisiti, la business logic legata al funzionamento del sonar è la seguente:
+
+            <ol>
+                <li>Il sonar esegue periodicamente una misurazione della distanza D.</li>
+                <li>A seconda del valore di D, è necessario interpretare la misurazione come:
+                    <ul>
+                        <li><tt>D <= DFREE/2</tt>: un container è presente presso la <bc>IOPort</bc>;</li>
+                        <li><tt>DFREE/2 < D <= DFREE</tt>: la misurazione è valida e la <bc>IOPort</bc> è
+                            libera;</li>
+                        <li><tt>D < DFREE</tt> per almeno 3 secondi consecutivi: il sensore va considerato
+                            guasto, e il sistema deve passare in stato <tt>OUT_OF_SERVICE</tt>.</li>
+                    </ul>
+                </li>
+                <li>Il sistema esce dallo stato <tt>OUT_OF_SERVICE</tt> non appena il sonar torna a rilevare una
+                    misurazione valida, ovvero <tt>D <= DFREE</tt>, coerentemente con quanto già chiarito dal
+                    committente nello Sprint 0.</li>
+            </ol>
+            <div class="remark">
+                ANALISI: per implementare la logica di business legata al funzionamento del sonar, le scelte plausibili
+                ci sono sembrate due:
+                <ol>
+                    <li>
+                        Implementare direttamente in python, quindi utilizzando MQTT non per comunicare le letture del sonar,
+                        ma direttamente i messaggi legati alla logica di business a cargoservice.
+                    </li>
+                    <li>
+                        Creare un attore (es. <bc>sensorservice</bc>), che tramite subscribe riceve le letture "raw" del sonar, le
+                        interpreta secondo la logica di business, e infine si occupa delle comunicazioni con cargoservice.
+                    </li>
+                </ol>
+                Abbiamo deciso di optare per la seconda opzione, dato che è quella che ci permette di tenere separata la
+                logica di business da quella dei dati.
+                <br><br>
+                Un'ulteriore domanda che ci siamo posti è stata dove fosse più opportuno posizionare questo attore, se nel
+                contesto di cargoservice o in quello del sensore, e quindi su Raspberry. Abbiamo deciso infine di posizionarlo
+                nel contesto del sensore, seguendo una logica di applicazione distribuita e di <a href="https://it.wikipedia.org/wiki/Edge_computing">Edge Computing</a>.
+                <br><br>
+                Entrando più nel dettaglio, <bc>sensorservice</bc> avrà il compito di:
                 <ul>
-                    <li><tt>D <= DFREE/2</tt>: un container è presente presso la <bc>IOPort</bc>;</li>
-                    <li><tt>DFREE/2 < D <= DFREE</tt>: la misurazione è valida e la <bc>IOPort</bc> è
-                        libera;</li>
-                    <li><tt>D < DFREE</tt> per almeno 3 secondi consecutivi: il sensore va considerato
-                        guasto, e il sistema deve passare in stato <tt>OUT_OF_SERVICE</tt>.</li>
+                    <li>ricevere periodicamente i dati grezzi (distanza D) prodotti dallo script Python di
+                        controllo del sensore;</li>
+                    <li>interpretare tali dati secondo le soglie definite dai requisiti, tenendo conto anche della
+                        durata delle misurazioni (ad esempio, i 3 secondi consecutivi necessari per dichiarare il
+                        sensore guasto): una singola lettura anomala non deve quindi essere sufficiente a
+                        determinare lo stato <tt>OUT_OF_SERVICE</tt>;</li>
+                    <li>notificare a <bc>cargoservice</bc>, tramite scambio di messaggi, i cambiamenti di stato
+                        rilevanti.</li>
                 </ul>
-            </li>
-            <li>Il sistema esce dallo stato <tt>OUT_OF_SERVICE</tt> non appena il sonar torna a rilevare una
-                misurazione valida, ovvero <tt>D <= DFREE</tt>, coerentemente con quanto già chiarito dal
-                committente nello Sprint 0.</li>
-        </ol>
-        <div class="remark">
-            ANALISI: il sensore fisico è stato fornito dal committente, con la richiesta esplicita di essere
-            montato su un dispositivo Raspberry Pi; per la gestione dei segnali a basso livello attraversio GPIO,
-            decidiamo di usare Python per la semplicità d'uso e l'abbondanza di librerie di controllo hardware.
-            Questo middleware restituisce quindi le misurazioni grezze rilevate dal sonar.
-            <br><br>
-            Per soddisfare i requisiti, tali misurazioni grezze devono essere elaborate e tradotte in
-            informazioni di più alto livello, coerenti con il resto del sistema (presenza/assenza del
-            container, stato di guasto). È quindi necessario individuare quale componente abbia la
-            responsabilità di questa elaborazione.
-            <br><br>
-            Decidiamo di introdurre un attore, chiamato <bc>sensorservice</bc>, collocato sullo stesso nodo del
-            sensore fisico. Questo attore ha il compito di:
-            <ul>
-                <li>ricevere periodicamente i dati grezzi (distanza D) prodotti dallo script Python di
-                    controllo del sensore;</li>
-                <li>interpretare tali dati secondo le soglie definite dai requisiti, tenendo conto anche della
-                    durata delle misurazioni (ad esempio, i 3 secondi consecutivi necessari per dichiarare il
-                    sensore guasto): una singola lettura anomala non deve quindi essere sufficiente a
-                    determinare lo stato <tt>OUT_OF_SERVICE</tt>;</li>
-                <li>notificare a <bc>cargoservice</bc>, tramite scambio di messaggi, i cambiamenti di stato
-                    rilevanti.</li>
-            </ul>
-            <br>
-            Dal punto di vista dei messaggi, <bc>sensorservice</bc> andrà quindi a sostituire il mock introdotto
-            nello Sprint 1, continuando a rispondere alle request <tt>is_cargo_present</tt> con
-            <tt>cargo_present</tt> oppure <tt>cargo_absent</tt>, e inviando in modo asincrono il dispatch
-            <tt>container_in</tt> non appena rileva l'arrivo di un container presso la <bc>IOPort</bc>, così
-            come già previsto nella logica di <bc>cargoservice</bc>.
-        </div>
-        <!-- LINK PYTHON -->
+                <br>
+                Dal punto di vista dei messaggi, <bc>sensorservice</bc> andrà quindi a sostituire il mock introdotto
+                nello Sprint 1, continuando a rispondere alle request <tt>is_cargo_present</tt> con
+                <tt>cargo_present</tt> oppure <tt>cargo_absent</tt>, e inviando in modo asincrono il dispatch
+                <tt>container_in</tt> non appena rileva l'arrivo di un container presso la <bc>IOPort</bc>, così
+                come già previsto nella logica di <bc>cargoservice</bc>.
+            </div>
+
+            <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/devices/python/sensor.py">Codice python sensore</a>, 
+            <a href="https://github.com/FRoffia/ISS_26_Cargoservice/blob/main/devices/src/devices.qak">codice qak sensorservice</a>
+<!--<pre>
+    import paho.mqtt.client as mqtt
+    import time
+    import keyboard
+
+    MQTT_BROKER = "127.0.0.1"
+    MQTT_PORT   = 1883
+
+    client = mqtt.Client(client_id="sensor")
+    client.connect(MQTT_BROKER, MQTT_PORT, 30)
+
+    d_int = 70
+
+    valuePush = f"push(0)"
+    msg_pushbutton = f"msg(push,event,pushbutton,none,{valuePush},0)"
+
+    while True:
+        value = f"sonardata({d_int})"
+        msg_sensor   = f"msg(sonardata,event,sensor,none,{value},0)"
+
+        #print("Invio:", msg)
+        time.sleep(0.5)
+        client.publish("distance", msg_sensor)
+        time.sleep(1)
+
+        #DFREE = 100, DFREE/2 = 50
+        if keyboard.is_pressed('q'):
+            d_int = 20  # 0<D<DFREE/2
+            print("q")
+        if keyboard.is_pressed('w'):
+            d_int = 70  # DFREE/2 < D < DFREE
+            print("w")
+        if keyboard.is_pressed('e'):
+            d_int = 110 # D > DFREE
+            print("e")
+        if keyboard.is_pressed('l'):
+            print("sent load_request")
+            client.publish("push", msg_pushbutton)
+            time.sleep(0.5)
+
+</pre>-->
+        </p>
 
         <h3>led</h3>
         <p>
