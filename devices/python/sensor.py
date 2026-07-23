@@ -10,15 +10,16 @@ client.connect(MQTT_BROKER, MQTT_PORT, 30)
 
 d_int = 70
 
-msg_pushbutton = f"msg(push,event,pushbutton,none,0,0)"
+valuePush = f"push(0)"
+msg_pushbutton = f"msg(push,event,pushbutton,none,{valuePush},0)"
 
 while True:
     value = f"sonardata({d_int})"
     msg_sensor   = f"msg(sonardata,event,sensor,none,{value},0)"
 
     #print("Invio:", msg)
+    time.sleep(0.5)
     client.publish("distance", msg_sensor)
-
     time.sleep(1)
 
     #DFREE = 100, DFREE/2 = 50
@@ -33,4 +34,5 @@ while True:
         print("e")
     if keyboard.is_pressed('l'):
         print("sent load_request")
-        client.publish("distance", msg_pushbutton)
+        client.publish("push", msg_pushbutton)
+        time.sleep(0.5)

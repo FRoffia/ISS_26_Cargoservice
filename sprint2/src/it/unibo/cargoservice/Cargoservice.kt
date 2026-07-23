@@ -37,6 +37,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				state("s0") { //this:State
 					action { //it:State
 						forward("send_home", "send_home(X)" ,"cargorobot" ) 
+						forward("led_off", "led_off(X)" ,"ledservice" ) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -47,6 +48,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				state("disengaged") { //this:State
 					action { //it:State
 						CommUtils.outgreen("cargoservice | DISENGAGED: waiting for cargo load request")
+						forward("led_off", "led_off(X)" ,"ledservice" ) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -120,6 +122,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 						 
 									val Error = "IOPort is already occupied by a cargo, retry later."
 						CommUtils.outred("cargoservice | $Error")
+						forward("free_slot", "free_slot($Cur_reserved_slot)" ,"holdservice" ) 
 						answer("load_request", "retrylater", "retrylater($Error)"   )  
 						//genTimer( actor, state )
 					}
@@ -149,13 +152,14 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				 	 					  scope, context!!, "local_tout_"+name+"_waitforcargo", DelayLong )  //OCT2023
 					}	 	 
 					 transition(edgeName="t09",targetState="cargo_timeout",cond=whenTimeout("local_tout_"+name+"_waitforcargo"))   
-					transition(edgeName="t010",targetState="engaged",cond=whenDispatch("container_in"))
+					transition(edgeName="t010",targetState="engaged",cond=whenEvent("container_in"))
 					transition(edgeName="t011",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("cargo_timeout") { //this:State
 					action { //it:State
 						 
 									val Error = "No cargo has arrived in IOPort, timeout."
+						forward("free_slot", "free_slot($Cur_reserved_slot)" ,"holdservice" ) 
 						CommUtils.outred("cargoservice | $Error")
 						//genTimer( actor, state )
 					}
@@ -168,6 +172,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					action { //it:State
 						CommUtils.outblue("cargoservice | System engaged, load operation is being handled by cargorobot")
 						request("handle_cargo_load", "handle_cargo_load($Cur_reserved_slot)" ,"cargorobot" )  
+						forward("led_blink", "led_blink(X)" ,"ledservice" ) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

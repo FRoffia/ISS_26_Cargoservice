@@ -5,11 +5,15 @@ System devices
 Event sonardata : sonardata(D)
 
 //messaggio per quando un container viene inserito nella ioport
-Dispatch    container_in  : container_in(X)
+Event container_in  : container_in(X)
 
 //messaggio di errore e di recovery del sensor
 Dispatch sensorError : sensorError(X)
 Dispatch sensorOK    : sensorOK(X)
+
+//messaggi per il led
+Dispatch led_blink : led_blink(X)
+Dispatch led_off   : led_off(X)
 
 //request e replies per sapere se un cargo è presente in ioport
 Request  is_cargo_present  : is_cargo_present(X)
@@ -19,9 +23,9 @@ Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
 //messaggi di mock pushbutton comandato da programma python di testing
 Event 	 push : push(X)
 Request  load_request  : load_request(X)
-Reply    load_accepted : load_accepted(SLOT)  for load_request
-Reply    load_rejected : load_rejected(X)     for load_request
-Reply    retrylater    : retrylater(X)        for load_request
+Reply    load_accepted : load_accepted(SLOT) for load_request
+Reply    load_rejected : load_rejected(X)    for load_request
+Reply    retrylater    : retrylater(X)       for load_request
 
 Context  ctx_sensor ip [host="localhost" port=8030]
 Context  ctx_cargoservice ip [host="127.0.0.1" port=8010]
@@ -36,7 +40,6 @@ QActor sensorservice context ctx_sensor{
 		var oos_counter = 0
 	#]
 	State s0 initial{
-		subscribe "distance"
 	}
 	Goto wait_for_data
 
@@ -80,7 +83,7 @@ QActor sensorservice context ctx_sensor{
 				if [# Distance < DFREE/2 #] {
 					if [# !container_present #] {
 						[# container_present = true #]
-						forward cargoservice -m container_in : container_in(X)
+						emit container_in : container_in(X)
 					}
 				} else {
 					[# container_present = false #]
@@ -91,9 +94,33 @@ QActor sensorservice context ctx_sensor{
 	Goto wait_for_data
 }
 
+QActor ledservice context ctx_sensor{
+	State s0 initial{
+		subscribe "led"
+	}Goto wait_for_msg
+	
+	State wait_for_msg{
+		
+	}
+	Transition t0
+		whenMsg led_off -> turn_off
+		whenMsg led_blink -> blink
+		
+	State turn_off{
+		println("ledservice | led OFF") color yellow
+	}
+	Goto wait_for_msg
+	
+	State blink{
+		println("ledservice | led BLINK") color yellow
+	}
+	Goto wait_for_msg
+		
+}
+
 QActor mock_pusbutton context ctx_sensor{
 	State s0 initial {
-		subscribe "distance"
+		subscribe "push"
 	}
 	Goto work
 	
@@ -102,10 +129,17 @@ QActor mock_pusbutton context ctx_sensor{
 	}
 	Transition t0
 		whenEvent push -> send_load_request
+		whenReply load_accepted -> work
+		whenReply load_rejected -> work
+		whenReply retrylater -> work
 	
 	State send_load_request {
 		println("mock_pushbutton | sent load_request")
 		request cargoservice -m load_request : load_request(X)
 	}
-	Goto work
+	Transition t0
+		whenEvent push -> send_load_request
+		whenReply load_accepted -> work
+		whenReply load_rejected -> work
+		whenReply retrylater -> work
 }

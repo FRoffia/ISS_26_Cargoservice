@@ -33,10 +33,14 @@ with Diagram('sprint2Arch', show=False, outformat='png', graph_attr=graphattr) a
           robotsmart=Custom('robotsmart(ext)','./qakicons/externalQActor.png')
      with Cluster('ctx_sensor', graph_attr=nodeattr):
           sensorservice=Custom('sensorservice(ext)','./qakicons/externalQActor.png')
+          ledservice=Custom('ledservice(ext)','./qakicons/externalQActor.png')
+     sys >> Edge( label='container_in', **evattr, decorate='true', fontcolor='darkgreen') >> cargoservice
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<is_cargo_present<font color="darkgreen"> cargo_present cargo_absent</font> &nbsp; >',  fontcolor='magenta') >> sensorservice
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<reserve_slot<font color="darkgreen"> reserve_ok reserve_fail</font> &nbsp; >',  fontcolor='magenta') >> holdservice
      cargorobot >> Edge(color='magenta', style='solid', decorate='true', label='<moverobot<font color="darkgreen"> moverobotdone moverobotfailed</font> &nbsp; getrobotstate<font color="darkgreen"> robotstate</font> &nbsp; >',  fontcolor='magenta') >> robotsmart
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<handle_cargo_load<font color="darkgreen"> cargo_load_success cargo_load_failed</font> &nbsp; >',  fontcolor='magenta') >> cargorobot
+     cargoservice >> Edge(color='blue', style='solid',  decorate='true', label='<led_off &nbsp; led_blink &nbsp; >',  fontcolor='blue') >> ledservice
+     cargoservice >> Edge(color='blue', style='solid',  decorate='true', label='<free_slot &nbsp; >',  fontcolor='blue') >> holdservice
      cargorobot >> Edge(color='blue', style='solid',  decorate='true', label='<setrobotstate &nbsp; >',  fontcolor='blue') >> robotsmart
      cargoservice >> Edge(color='blue', style='solid',  decorate='true', label='<send_home &nbsp; >',  fontcolor='blue') >> cargorobot
 diag

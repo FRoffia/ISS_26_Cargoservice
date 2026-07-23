@@ -37,7 +37,6 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
-						subscribe(  "distance" ) //mqtt.subscribe(this,topic)
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -94,7 +93,7 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 								 ){if(  Distance < DFREE/2  
 								 ){if(  !container_present  
 								 ){ container_present = true  
-								forward("container_in", "container_in(X)" ,"cargoservice" ) 
+								emit("container_in", "container_in(X)" ) 
 								}
 								}
 								else
