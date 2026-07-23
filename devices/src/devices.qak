@@ -1,1 +1,145 @@
 System devices
+	mqttBroker "localhost" : 1883 eventTopic "distance"
+	
+//evento dal sensore fisico, dal programma sensor.py, attraverso mqtt sul topic "distance"
+Event sonardata : sonardata(D)
+
+//messaggio per quando un container viene inserito nella ioport
+Event container_in  : container_in(X)
+
+//messaggio di errore e di recovery del sensor
+Dispatch sensorError : sensorError(X)
+Dispatch sensorOK    : sensorOK(X)
+
+//messaggi per il led
+Dispatch led_blink : led_blink(X)
+Dispatch led_off   : led_off(X)
+
+//request e replies per sapere se un cargo è presente in ioport
+Request  is_cargo_present  : is_cargo_present(X)
+Reply    cargo_present     : cargo_present(X) for is_cargo_present
+Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
+
+//messaggi di mock pushbutton comandato da programma python di testing
+Event 	 push : push(X)
+Request  load_request  : load_request(X)
+Reply    load_accepted : load_accepted(SLOT) for load_request
+Reply    load_rejected : load_rejected(X)    for load_request
+Reply    retrylater    : retrylater(X)       for load_request
+
+Context  ctx_sensor ip [host="localhost" port=8030]
+Context  ctx_cargoservice ip [host="127.0.0.1" port=8010]
+
+ExternalQActor cargoservice context ctx_cargoservice
+
+QActor sensorservice context ctx_sensor{
+	[#
+		val DFREE = 100
+		var container_present = false
+		var out_of_service = false
+		var oos_counter = 0
+	#]
+	State s0 initial{
+	}
+	Goto wait_for_data
+
+	State wait_for_data{
+	}
+	Transition t0
+		whenRequest is_cargo_present -> handle_request
+		whenEvent sonardata -> processdata
+		
+	State handle_request {
+		if [# container_present #]{
+			replyTo is_cargo_present with cargo_present : cargo_present(X)
+		} else {
+			replyTo is_cargo_present with cargo_absent : cargo_absent(X)
+		}
+	}
+	Goto wait_for_data
+
+	State processdata{
+		onMsg(sonardata : sonardata(D)){
+			[# val Distance = payloadArg(0).toInt() #]
+			println("sensorservice | Distance = $Distance") color green
+
+			//gestione out of service
+			if [# Distance > DFREE #] {
+				[# oos_counter += 1 #]
+				if [# oos_counter >= 2 && !out_of_service #] {
+					[# out_of_service = true #]
+					forward cargoservice -m sensorError : sensorError(X)
+				}
+			} else {
+				[# oos_counter = 0 #]
+				if [# out_of_service #] {
+					[# out_of_service = false #]
+					forward cargoservice -m sensorOK : sensorOK(X)
+				}
+			}
+
+			//gestione presenza cargo
+			if [# !out_of_service #] {
+				if [# Distance < DFREE/2 #] {
+					if [# !container_present #] {
+						[# container_present = true #]
+						emit container_in : container_in(X)
+					}
+				} else {
+					[# container_present = false #]
+				}
+			}
+		}
+	}
+	Goto wait_for_data
+}
+
+QActor ledservice context ctx_sensor{
+	State s0 initial{
+		subscribe "led"
+	}Goto wait_for_msg
+	
+	State wait_for_msg{
+		
+	}
+	Transition t0
+		whenMsg led_off -> turn_off
+		whenMsg led_blink -> blink
+		
+	State turn_off{
+		println("ledservice | led OFF") color yellow
+	}
+	Goto wait_for_msg
+	
+	State blink{
+		println("ledservice | led BLINK") color yellow
+	}
+	Goto wait_for_msg
+		
+}
+
+QActor mock_pusbutton context ctx_sensor{
+	State s0 initial {
+		subscribe "push"
+	}
+	Goto work
+	
+	State work{
+		//aspetto evento dal programma python
+	}
+	Transition t0
+		whenEvent push -> send_load_request
+		whenReply load_accepted -> work
+		whenReply load_rejected -> work
+		whenReply retrylater -> work
+	
+	State send_load_request {
+		println("mock_pushbutton | sent load_request")
+		request cargoservice -m load_request : load_request(X)
+	}
+	Transition t0
+		whenEvent push -> send_load_request
+		whenReply load_accepted -> work
+		whenReply load_rejected -> work
+		whenReply retrylater -> work
+}

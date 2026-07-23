@@ -39,9 +39,10 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t036",targetState="look_for_empty_slot",cond=whenRequest("reserve_slot"))
-					transition(edgeName="t037",targetState="set_full",cond=whenDispatch("test_hold_full"))
-					transition(edgeName="t038",targetState="set_empty",cond=whenDispatch("test_hold_empty"))
+					 transition(edgeName="t032",targetState="look_for_empty_slot",cond=whenRequest("reserve_slot"))
+					transition(edgeName="t033",targetState="free_slot_state",cond=whenDispatch("free_slot"))
+					transition(edgeName="t034",targetState="set_full",cond=whenDispatch("test_hold_full"))
+					transition(edgeName="t035",targetState="set_empty",cond=whenDispatch("test_hold_empty"))
 				}	 
 				state("look_for_empty_slot") { //this:State
 					action { //it:State
@@ -63,6 +64,21 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 						else
 						 {answer("reserve_slot", "reserve_fail", "reserve_fail(X)"   )  
 						 }
+						//genTimer( actor, state )
+					}
+					//After Lenzi Aug2002
+					sysaction { //it:State
+					}	 	 
+					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
+				}	 
+				state("free_slot_state") { //this:State
+					action { //it:State
+						if( checkMsgContent( Term.createTerm("free_slot(SLOT)"), Term.createTerm("free_slot(SLOT)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 
+									            val slotId = payloadArg(0).substringAfter("slot").toInt()
+									            hold.freeSlot(slotId)
+						}
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

@@ -29,19 +29,66 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
+		
+				// stato
+				val Step = 335
+				
+				// (y,x)
+				val positions = hashMapOf(
+					"home"    	to arrayOf(0, 0),
+					"io_port" 	to arrayOf(4, 0),
+				    "slot1"   	to arrayOf(1, 1),
+				    "slot2" 	to arrayOf(1, 4),
+				    "slot3" 	to arrayOf(3, 1),
+				    "slot4" 	to arrayOf(3, 4),
+				    "slot5" 	to arrayOf(2, 5)
+				)
+				
+				val directions = hashMapOf(
+					"home"    	to "down",
+					"io_port" 	to "down",
+				    "slot1"   	to "right",
+				    "slot2" 	to "left",
+				    "slot3" 	to "right",
+				    "slot4" 	to "left",
+				    "slot5" 	to "left"
+				)
+				
+				var Destination = ""
+				var Target_slot = ""
+				
+				var X = 0
+				var Y = 0
+				
+				var cur_coordinates = IntArray(2)
+				var cur_direction = ""
+				var input_cur_pos = ""
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
+						CommUtils.outblue("cargorobot | waiting for cargo load request")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition( edgeName="goto",targetState="work", cond=doswitch() )
+					 transition(edgeName="t019",targetState="goto_ioport",cond=whenRequest("handle_cargo_load"))
+					transition(edgeName="t020",targetState="goto_home",cond=whenDispatch("send_home"))
 				}	 
-				state("work") { //this:State
+				state("goto_ioport") { //this:State
 					action { //it:State
-						CommUtils.outblack("cargorobot | WORKING: moving containers from IOPort to slot5, then to reserved slot")
+						if( checkMsgContent( Term.createTerm("handle_cargo_load(TARGET_SLOT)"), Term.createTerm("handle_cargo_load(TARGET_SLOT)"), 
+						                        currentMsg.msgContent()) ) { //set msgArgList
+								 
+												Target_slot = payloadArg(0)
+						}
+						
+									Destination = "io_port"
+									val coords = positions[Destination]!!
+									X = coords[0]
+									Y = coords[1]
+						request("moverobot", "moverobot($X,$Y,$Step)" ,"robotsmart" )  
+						CommUtils.outgreen("cargorobot | moving towards io_port...")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
