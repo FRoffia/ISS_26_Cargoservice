@@ -14,22 +14,23 @@
     <div class="body">
 
         <h2>Punto di partenza</h2>
-           <p>
+            <p>
             Nello sprint 1, grazie alla analisi del problema e implementazione .., abbiamo implementato
             i componenti che riguardano il core business, ovvero cargoservice, cargorobot e holdservice. Gli altri componenti come
             sensor e le periferiche di IOPort sono state modellate come mock per agevolare i test.
 
-            FOTO ARCH
-           </p>
+            </p>
+            <img src="img/arch1_gen.png" width="70%">
+
         <h2>Goal</h2>
             <p>
-                In questo sprint svolgeremo analisi del problema e implementazione dei componenti sensor e led, che si trovano
-                sullo stesso nodo. (link a dove viene detta questa cosa). In particolare, alla fine dello Sprint 2, il sistema
-                dovrà essere in grado di:
+                In questo sprint svolgeremo analisi del problema e implementazione dei componenti sensor e led che, come specificato
+                da committente, si trovano sullo stesso nodo (<a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#domande">
+                sprint0 - domande al committente</a>). In particolare, alla fine dello Sprint 2, il sistema dovrà essere in grado di:
                 <ul>
                     <li>rilevare la presenza di un container presso la IOPort</li>
                     <li>segnalare la presenza di un container presso la IOPort a cargoservice</li>
-                    <li>gestire un eventuale guasto del sensore e una eventuale recovery dallo stato di guasto (link a domanda)</li>
+                    <li>gestire un eventuale guasto del sensore con una recovery dallo stato di guasto, come descritto da committente (<a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#domande">sprint0 - domande al committente</a>)</li>
                     <li>lampeggiare il led di stato se il sistema è ENGAGED, spegnerlo se DISENGAGED</li>
                 </ul>
             </p>
@@ -45,9 +46,11 @@
         <h2>Analisi del Problema</h2>
             <h3>sensor</h3>
             <p>
-                Partiamo dall'analisi del problema del componente sensor, che attraverso un sensore a ultrasuoni, deve 
-                essere in grado di rilevare la distanza di frotne a io port... ... 
-                Da requisiti, il tipico flusso di lavoro del sonar è il seguente:
+                Partiamo dall'analisi del problema del componente sensor. Questo è un componente fisico, un sensore a ultrasuoni collegato
+                a una scheda Raspberry, che è in grado di misurare la distanza di fronte a se. Questo componente opera tramite codice
+                python fornito da committente, ed è in grado di comunicare le sue letture pubblicandole su broker MQTT(LINK A PROTOBOOK).
+                <br><br>
+                Da requisiti, la business logic legata al funzionamento del sonar è la seguente:
 
                 <ol>
                     <li>Il sonar esegue una rilevazione della distanza D</li>
@@ -59,18 +62,29 @@
                         </ul>
                         
                     </li>
-                    <div class="remark">
-                        ANALISI: il sensore fisico è stato fortnito dal committente, con richiesta di essere montato
-                        su un dispositvo Raspberry. Inoltre, ci vengono fortnite le librerie python per gestirne il funzionamento,
-                        ottenendo le rilevazioni per poi elaborarle. Per gestire la distanza come da reuisiti bisogna
-                        trasformare queste rilevazioni in dati utili al nostro sistema, quindi bisogna decidere quale componente
-                        ha l'onere di questa elaborazione. Abbiamo deciso di creare un componente chiamato sensorservice, che
-                        si trova sullo stesso nodo del sensore fisico, che ha il compito di ricevere i dati grezzi inviati dal sensore
-                        e inviare i mesaggi necessari a cargoservice ... etc ...
-                    </div>
                     <li>Se il sistema entra in OOS, ne uscirà alla prima misurazione D < DFREE</li>
+                    
                 </ol>
-
+                <div class="remark">
+                    ANALISI: per implementare la logica di business legata al funzionamento del sonar, le scelte plausibili
+                    ci sono sembrate due:
+                    <ol>
+                        <li>
+                            Implementare direttamente in python, quindi utilizzando MQTT non per comunicare le letture del sonar,
+                            ma direttamente i messaggi legati alla logica di business a cargoservice.
+                        </li>
+                        <li>
+                            Creare un attore (es. <em>sensorservice</em>), che tramite subscribe riceve le letture "raw" del sonar, le
+                            interpreta secondo la logica di business, e infine si occupa delle comunicazioni con cargoservice.
+                        </li>
+                    </ol>
+                    Abbiamo deciso di optare per la seconda opzione, dato che è quella che ci permette di tenere separata la
+                    logica di business da quella dei dati.
+                    <br><br>
+                    Un'ulteriore domanda che ci siamo posti è stata dove fosse più opportuno posizionare questo attore, se nel
+                    contesto di cargoservice o in quello del sensore, e quindi su Raspberry. Abbiamo deciso infine di posizionarlo
+                    nel contesto del sensore, seguendo una logica di applicazione distribuita e di <a href="https://it.wikipedia.org/wiki/Edge_computing">Edge Computing</a>.
+                </div>
                 (LINK PYTHON)
             </p>
             <h3>led</h3>
