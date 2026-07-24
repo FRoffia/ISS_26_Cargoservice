@@ -77,7 +77,7 @@
                         <li><tt>D <= DFREE/2</tt>: un container è presente presso la <bc>IOPort</bc>;</li>
                         <li><tt>DFREE/2 < D <= DFREE</tt>: la misurazione è valida e la <bc>IOPort</bc> è
                             libera;</li>
-                        <li><tt>D < DFREE</tt> per almeno 3 secondi consecutivi: il sensore va considerato
+                        <li><tt>D > DFREE</tt> per almeno 3 secondi consecutivi: il sensore va considerato
                             guasto, e il sistema deve passare in stato <tt>OUT_OF_SERVICE</tt>.</li>
                     </ul>
                 </li>
@@ -194,13 +194,36 @@
 
         <h2>Test Plans</h2>
         <p>
-
+            Consideriamo completati correttamente i test svolti nello Sprint 1 (T01-T06). Data la semplicità di verifica della correttezza
+            della logica implemetnata in questo sprint, abbiamo deciso di testare manualmente i vari scenari di lavoro del <bc>sensor</bc>,
+            attraverso un programma python (LINK) che ci permette di passare tra i tre range di distanze descritte nella analisi del problema.
+            Inoltre, il testing del led è stato svolto osservando il led.<br>
+            Data D la distanza misurata dal sensore, le casistiche testate sono:
+            <ul>
+                <li>T07: Impostare D <= DFREE/2, non essere in OUT_OF_SERVICE e inviare una load_request. La response deve essere retrylater 
+                    dato che la distanza indica la presenza di un carico alla IOPort.</li>
+                <li>T08: Impostare DFREE/2 < D <= DFREE, avere almeno uno slot dela hold libero, non essere in OUT_OF_SERVICE e inviare una load_request. 
+                    La response deve essere load_accepted e il robot deve eseguire il normale ciclo di movimentazione.</li>
+                <li>T09: Impostare D > DFREE, non essere in OUT_OF_SERVICE e aspettare 3 secondi. Il sistema deve passare
+                    in stato OUT_OF_SERVICE e, alla ricezione di una eventuale laod_request, rispondere retrylater.</li>
+                <li>T10: Avviare il sistema, eseguire un intero ciclo di movimentazione, aspettare che il robot torni alla home. Il led
+                    deve partire da spento, lampeggiare durante la movimentazione e spegnersi al ritorno del robot alla home.
+                </li>
+            </ul> 
         </p>
 
         <h2>Architettura</h2>
         <p>
-
+            Di seguito illustriamo l'architettura QAK prodotta al termine dello Sprint 2, dal punto di vista del contesto <tt>ctx_cargoservice</tt>,
+            e dal punto di vista di <tt>ctx_sensor</tt>. Nel contesto di sensor abbiamo inserito un mock <bc>pushbutton</bc> per facilità di 
+            tesring ma nello Sprint 3 verrà spostato e implementato definitivamente in una interfaccia web. Per maggiore chiarezza,
+            abbiamo nascosto gli attori che verranno implementati negli sprint successivi, in modo da evidenziare
+            quali componenti sono attualmente realizzati. Per una visione d'insieme dell'architettura finale
+            prototipale, si rimanda all'
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#arch">architettura prodotta nello Sprint 0</a>.
         </p>
+        <img src="img/arch2_gen.png" width="100%">
+        <img src="img/arch2_devices_gen.png" width="60%">
 
         <h2 id="deployment">Deployment</h2>
         <p>
@@ -215,7 +238,8 @@
                 (le istruzioni per il deployment si trovano in fondo al file).</li>
             <li>Collegarsi alla pagina web dell'ambiente virtuale, all'indirizzo
                 <a href="http://localhost:8085/">http://localhost:8085/</a>.</li>
-            <li>Importare il progetto sprint1 in Eclipse come progetto Gradle.</li>
+            <li>Importare il progetto sprint2 in Eclipse come progetto Gradle.</li>
+            <li>Importare il progetto devices in Eclipse come progetto Gradle.</li>
             <li>Lanciare il sistema tramite la Gradle Task run, oppure con il comando <code>gradlew run</code>.</li>
             <li>Per eseguire i test, in un prompt dei comandi separato, lanciare il comando <code>gradlew test</code>.</li>
         </ol>

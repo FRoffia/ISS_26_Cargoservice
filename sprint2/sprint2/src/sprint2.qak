@@ -1,0 +1,504 @@
+System sprint2
+
+//Request e replies per la richiesta di carico ricevuta da pusbutton
+Request  load_request  : load_request(X)
+Reply    load_accepted : load_accepted(SLOT) for load_request
+Reply    load_rejected : load_rejected(X)    for load_request
+Reply    retrylater    : retrylater(X)       for load_request
+
+//request e replies per chiedere a hold se c'è uno slot libero
+Request  reserve_slot  : reserve_slot(X)
+Reply    reserve_ok    : reserve_ok(N)        for reserve_slot
+Reply    reserve_fail  : reserve_fail(CAUSE)  for reserve_slot
+
+Dispatch free_slot : free_slot(SLOT)
+
+
+//request e replies per sapere se un cargo è presente in ioport
+Request  is_cargo_present  : is_cargo_present(X)
+Reply    cargo_present     : cargo_present(X) for is_cargo_present
+Reply    cargo_absent      : cargo_absent(X)  for is_cargo_present
+
+//messaggio per quando un container viene inserito nella ioport
+Event    container_in  : container_in(X)
+
+//request e replies per muovere il robotsmart
+Request  moverobot       : moverobot(TARGETX, TARGETY,STEPTIME)
+Reply    moverobotdone   : moverobotok(ARG)                    for moverobot
+Reply    moverobotfailed : moverobotfailed(PLANDONE, PLANTODO) for moverobot
+Request setdirection : dir( D ) //set robot direction to D=up|down|left|right
+Reply setdirectiondone : pos(PX,PY) for setdirection
+Dispatch setrobotstate: setpos(X,Y,D) 		//"set robot position to (X,Y) direction D=up|down|left|right" 
+Request getrobotstate : getrobotstate(ARG)		//"request robot state ARG unused"
+Reply robotstate      : robotstate(POS,DIR)  for getrobotstate  //"POS->pos(X,Y) DIR->up|down|left|right"
+
+//request e replies per comunicare con cargorobot
+Request  handle_cargo_load    : handle_cargo_load(TARGET_SLOT)
+Reply    cargo_load_success   : cargo_load_success(X)          for handle_cargo_load
+Reply    cargo_load_failed    : cargo_load_failed(X)           for handle_cargo_load
+Dispatch send_home            : send_home(X)
+
+//messaggio di errore e di recovery del sensor
+Dispatch sensorError : sensorError(X)
+Dispatch sensorOK    : sensorOK(X)
+
+//messaggi per il led
+Dispatch led_blink : led_blink(X)
+Dispatch led_off   : led_off(X)
+
+//messaggi per il testing
+Dispatch mock_cargo_present : mock_cargo_present(X)
+Dispatch mock_cargo_absent : mock_cargo_absent(X)
+Dispatch test_hold_full : test_hold_full(X)
+Dispatch test_hold_empty : test_hold_empty(X)
+Dispatch setDelay : setDelay(X)
+
+//autodispatch
+Dispatch already_home     : already_home(X)       
+
+
+Context  ctx_cargoservice ip [host="localhost" port= 8010]
+Context  ctxrobotsmart    ip [host="127.0.0.1" port=8020]
+Context  ctx_sensor       ip [host="rpi" port=8030]
+//Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
+
+ExternalQActor robotsmart 	 context ctxrobotsmart
+ExternalQActor sensorservice context ctx_sensor
+ExternalQActor ledservice    context ctx_sensor
+
+//attore principale del core business del sistema.
+QActor cargoservice context ctx_cargoservice {
+	
+	[#
+		var Cur_reserved_slot = ""
+		var Delay = 30000
+		var DelayLong = 30000L
+	#] 
+	
+	//dai requisiti, gli stati del sistema sono: ENGAGED, DISENGAGED, OUTOFSERVICE
+    State s0 initial {
+        forward cargorobot -m send_home : send_home(X)
+        forward ledservice -m led_off : led_off(X)
+    }
+    Goto disengaged
+
+
+    State disengaged {
+		println("cargoservice | DISENGAGED: waiting for cargo load request") color green
+		forward ledservice -m led_off : led_off(X)
+    }
+    Transition t0
+        whenRequest load_request -> evaluate_request
+        whenMsg sensorError -> outOfService
+        whenMsg setDelay -> set_delay
+        
+    State set_delay {
+    	//setting delay for testing
+    	onMsg (setDelay : setDelay(D)){
+    		[# Delay = payloadArg(0).toInt()
+    			DelayLong = Delay.toLong()#
+    		]
+    	}
+    	println("cargoservice | setting delay for testing: $Delay ms") color blue
+    }
+    Goto disengaged
+   
+    State evaluate_request{
+    	println("cargoservice | checking with hold if a slot is available") color blue
+    	request holdservice -m reserve_slot : reserve_slot(X)
+    }
+    Transition t0
+    	whenReply reserve_ok -> check_ioport
+    	whenReply reserve_fail -> load_rejected
+    	whenMsg sensorError -> outOfService
+    	
+    	
+	State load_rejected{
+		
+		[# 
+			val Error = "No slots available, load is rejected."
+		#]
+		
+		println("cargoservice | $Error") color red
+		
+		replyTo load_request with load_rejected : load_rejected($Error)
+	}
+	Goto checkloadqueue
+
+
+	State check_ioport{
+		//salviamo in variabile globale lo slot riservato
+		onMsg( reserve_ok : reserve_ok(SLOT) ) {
+			[# 
+				Cur_reserved_slot = payloadArg(0)
+			#]
+			println("cargoservice | Reserved slot: $Cur_reserved_slot")
+		}
+		
+		//richiesta sincrona a ioport per sapere se c'è già un container, in caso rispondo a load request con retrylater
+		request sensorservice -m is_cargo_present : is_cargo_present(X)
+	}
+	Transition t0
+		whenReply cargo_present -> retry_later
+		whenReply cargo_absent -> send_accept
+		whenMsg sensorError -> outOfService
+		
+		
+	State retry_later{
+		[# 
+			val Error = "IOPort is already occupied by a cargo, retry later."
+		#]
+		
+		println("cargoservice | $Error") color red
+		
+		forward holdservice -m free_slot : free_slot($Cur_reserved_slot)
+		replyTo load_request with retrylater : retrylater($Error)
+	}
+	Goto checkloadqueue	
+		
+		
+	State send_accept{
+		replyTo load_request with load_accepted : load_accepted(X)
+
+	}
+	Goto waitforcargo
+		
+	State waitforcargo{
+		//aspetto 30 secondi che arrivi un cargo in ioport, altrimenti torno in disengaged
+		println("cargoservice | PLACE CARGO AT IOPORT") color red
+	}
+	Transition t0
+		whenTimeVar DelayLong -> cargo_timeout
+		whenEvent container_in -> engaged
+		whenMsg sensorError -> outOfService
+		
+		
+	State cargo_timeout{
+		//il cargo non è arrivato nella ioport entro 30 sec, rispondiamo alla richiesta di carico e torniamo a disengaged
+		[# 
+			val Error = "No cargo has arrived in IOPort, timeout."
+		#]
+		
+		forward holdservice -m free_slot : free_slot($Cur_reserved_slot)
+		println("cargoservice | $Error") color red
+	}
+	Goto checkloadqueue
+
+
+    State engaged {
+    	//inviamo la richiesta di carico al robot con lo slotID
+    	println("cargoservice | System engaged, load operation is being handled by cargorobot") color blue
+    	request cargorobot -m handle_cargo_load : handle_cargo_load($Cur_reserved_slot)
+    	forward ledservice -m led_blink : led_blink(X)
+    }
+    Transition t0
+    	whenReply cargo_load_success -> checkloadqueue
+    	whenReply cargo_load_failed -> disengaged
+    	whenMsg sensorError -> outOfService
+
+	State checkloadqueue{
+	}
+	Transition t0
+		whenTime 10 -> s0
+		whenRequest load_request -> evaluate_request
+		
+
+    State outOfService {
+    	//gestisco out of service
+    	println("cargoservice | sensor error: OUT OF SERVICE!") color red
+    }
+    Transition t0
+     whenRequest load_request -> reply_oos
+     whenMsg sensorOK -> s0
+     
+    State reply_oos {
+    	replyTo load_request with retrylater : retrylater(X)
+    } Goto outOfService
+    
+}
+
+QActor cargorobot context ctx_cargoservice {
+	[#
+		// stato
+		val Step = 335
+		
+		// (y,x)
+		val positions = hashMapOf(
+			"home"    	to arrayOf(0, 0),
+			"io_port" 	to arrayOf(4, 0),
+		    "slot1"   	to arrayOf(1, 1),
+		    "slot2" 	to arrayOf(1, 4),
+		    "slot3" 	to arrayOf(3, 1),
+		    "slot4" 	to arrayOf(3, 4),
+		    "slot5" 	to arrayOf(2, 5)
+		)
+		
+		val directions = hashMapOf(
+			"home"    	to "down",
+			"io_port" 	to "down",
+		    "slot1"   	to "right",
+		    "slot2" 	to "left",
+		    "slot3" 	to "right",
+		    "slot4" 	to "left",
+		    "slot5" 	to "left"
+		)
+		
+		var Destination = ""
+		var Target_slot = ""
+		
+		var X = 0
+		var Y = 0
+		
+		var cur_coordinates = IntArray(2)
+		var cur_direction = ""
+		var input_cur_pos = ""
+	#]
+
+    State s0 initial {
+    	//ci mettiamo subito in attesa di una richiesta di carico, quando arriva la prima cosa da fare è raggiungere ioport
+    	println("cargorobot | waiting for cargo load request")	color blue
+    }
+    Transition t0
+    	whenRequest handle_cargo_load -> goto_ioport
+    	whenMsg send_home -> goto_home
+    
+    
+    State goto_ioport{
+    	onMsg( handle_cargo_load : handle_cargo_load(TARGET_SLOT) ) {
+    		//salvo in variabile globale lo slot in cui dovrò portare il cargo
+			[# 
+				Target_slot = payloadArg(0)
+			#]
+		}
+		
+		//recupero le coordinate di ioport e la raggiungo
+		[#
+			Destination = "io_port"
+			val coords = positions[Destination]!!
+			X = coords[0]
+			Y = coords[1]
+		#]
+		
+    	request robotsmart -m moverobot : moverobot($X, $Y, $Step)
+    	println("cargorobot | moving towards io_port...") color green
+    }
+    Transition t0
+    	whenReply moverobotdone -> goto_slot5
+    	whenReply moverobotfailed -> handle_move_error
+    	
+    
+    State handle_move_error{
+    	println("cargorobot | move error, could not complete cargo load") color red
+    	
+    	replyTo handle_cargo_load with cargo_load_failed : cargo_load_failed(X)
+    }
+    
+    
+    State goto_slot5{
+    	//simuliamo tempo di carico del cargo
+    	delay 3000
+    	println("cargorobot | moving towards slot5...") color green
+    	[#
+			Destination = "slot5"
+			val coords = positions[Destination]!!
+			X = coords[0]
+			Y = coords[1]
+		#]
+		
+		request robotsmart -m moverobot : moverobot($X, $Y, $Step)
+    }
+    Transition t0
+    	whenReply moverobotdone -> goto_target_slot//arrived_at_slot5
+    	whenReply moverobotfailed -> handle_move_error
+
+
+	State arrived_at_slot5{
+		println("$name | arrived at slot 5") color magenta
+		[# 
+			val Direction = directions[Destination]!!
+		#]
+		println("$name | turning $Direction ...") color magenta
+		forward robotsmart -m setrobotstate : setpos($X,$Y,$Direction)
+		
+		//simuliamo tempo di marking del cargo nello slot 5
+    	delay 5000
+	}
+	Goto goto_target_slot
+	
+
+	State goto_target_slot{
+		//simuliamo tempo di marking del cargo nello slot 5
+    	delay 2000
+    	println("cargorobot | moving towards $Target_slot...") color green
+    	[#
+			val coords = positions[Target_slot]!!
+			X = coords[0]
+			Y = coords[1]
+		#]
+		
+		request robotsmart -m moverobot : moverobot($X, $Y, $Step)
+		
+		
+	}
+	Transition t0
+    	whenReply moverobotdone -> cargo_load_done//arrived_at_target_slot
+    	whenReply moverobotfailed -> handle_move_error
+    	
+    	
+	State arrived_at_target_slot{
+		println("$name | arrived at target slot") color magenta
+		[# 
+			val Direction = directions[Target_slot]!!
+		#]
+		forward robotsmart -m setrobotstate : setpos($X,$Y,$Direction)
+		
+		
+	}
+	Goto cargo_load_done
+
+    	
+	State goto_home{
+		//controlliamo se il robot si trova già in home
+		request robotsmart -m getrobotstate : getrobotstate(ARG)
+	}
+	Transition t0
+		whenReply robotstate -> evaluate_home
+    	
+	
+	State evaluate_home{
+		onMsg( robotstate : robotstate(POS,D) ) {
+    		//salvo in variabile globale lo slot in cui dovrò portare il cargo
+			[# 
+				input_cur_pos = payloadArg(0)
+				val inner = input_cur_pos.substringAfter("(").substringBefore(")")
+				val parts = inner.split(",")
+				
+				val x = parts[0].trim().toInt()
+				val y = parts[1].trim().toInt()
+				
+				cur_coordinates[0] = x
+				cur_coordinates[1] = y
+				cur_direction = payloadArg(1)
+			#]
+		}
+		
+    	[#
+			Destination = "home"
+			val coords = positions[Destination]!!
+			X = coords[0]
+			Y = coords[1]
+		#]
+		
+		//println("cargorobot | cheking if already home, msg: $input_cur_pos, cur: ${cur_coordinates[0]} , ${cur_coordinates[1]}") color yellow
+		
+		if [# X != cur_coordinates[0] && Y != cur_coordinates[1] #] {
+			println("cargorobot | moving towards home...") color green
+		
+			request robotsmart -m moverobot : moverobot($X, $Y, $Step)
+		} else {
+			autodispatch already_home : already_home(X)
+		}
+		
+	}
+	Transition t0
+    	whenReply moverobotdone -> s0//arrived_at_home
+    	whenReply moverobotfailed -> handle_move_error
+    	whenMsg already_home -> s0
+	
+	
+	State arrived_at_home{
+		println("cargorobot | arrived at home") color magenta
+		[# 
+			val Direction = directions[Destination]!!
+		#]
+		forward robotsmart -m setrobotstate : setpos($X,$Y,$Direction)
+	}
+	Transition t0
+		whenReply setdirectiondone -> s0
+	
+	
+	State cargo_load_done{
+		//simuliamo tempo di scarico del cargo
+    	delay 2000
+		
+		replyTo handle_cargo_load with cargo_load_success : cargo_load_success(X)
+	}
+	Goto s0
+}
+
+QActor holdservice context ctx_cargoservice{
+	[#
+		var hold = Hold(4)
+	#]
+	
+	State s0 initial{
+		
+	}
+	Transition t0
+		whenRequest reserve_slot -> look_for_empty_slot
+		whenMsg free_slot -> free_slot_state
+		whenMsg test_hold_full -> set_full
+		whenMsg test_hold_empty -> set_empty
+	
+	State look_for_empty_slot{
+		[#
+			val slotsOccupation = hold.getSlotsOccupation()
+			var EmptySlot = "no"
+			
+			for ((i,occupation) in slotsOccupation.withIndex()) {
+    			if(!occupation){
+    				EmptySlot = "slot"+(i+1)
+    				hold.occupySlot(i+1)
+    				break
+    			}
+			}
+			
+		#]
+		
+		//Se trovo slot mando risposta positiva, altrimenti negativa
+		if [# !EmptySlot.equals("no") #] {
+			replyTo reserve_slot with reserve_ok : reserve_ok($EmptySlot)
+		} else {
+			
+			replyTo reserve_slot with reserve_fail : reserve_fail(X)
+		}
+	}
+	Goto s0
+	
+	State free_slot_state {
+	    onMsg( free_slot : free_slot(SLOT) ) {
+	        [# 
+	            val slotId = payloadArg(0).substringAfter("slot").toInt()
+	            hold.freeSlot(slotId)
+	        #]
+	        
+		    }
+		}
+	Goto s0
+	
+	
+	State set_full{
+		println("hold | test mode: set hold to full") color blue
+		
+		[#	hold.occupySlot(1)
+			hold.occupySlot(2)
+			hold.occupySlot(3)
+			hold.occupySlot(4)
+		#]
+	}
+	Goto s0
+	
+	State set_empty{
+		println("hold | test mode: set hold to empty") color blue
+		
+		[#	hold.freeSlot(1)
+			hold.freeSlot(2)
+			hold.freeSlot(3)
+			hold.freeSlot(4)
+		#]
+	}
+	Goto s0
+	
+	
+
+}
