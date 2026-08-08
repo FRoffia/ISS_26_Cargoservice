@@ -241,21 +241,44 @@
             <li>Importare il progetto sprint2 in Eclipse come progetto Gradle.</li>
             <li>Importare il progetto devices in Eclipse come progetto Gradle.</li>
             <li>Lanciare il sistema tramite la Gradle Task run, oppure con il comando <code>gradlew run</code>.</li>
-            <li>Per eseguire i test, in un prompt dei comandi separato, lanciare il comando <code>gradlew test</code>.</li>
         </ol>
         <p>
-            Il sistema appena lanciato resta in stato DISENGAGED. Per osservare un ciclo di movimentazione, lanciare i
-            test.
+            Riguardo il sensore, il led e il pushbutton di test è necessario:
+            <ol>
+                <li>Avviare la task gradle fatJar con il comando <code>gradlew fatJar</code> per generare il jar eseguibile del software del contesto <tt>ctx_sensor</tt></li>
+                <li>Spostare il jar <code>ISS_26_Cargoservice\sprint2\devices\build\libs\devices-1.0-fat.jar</code> in qualsiasi posizione del Raspberry Pi</li>
+                <li>Spostare il middleware python <code>ISS_26_Cargoservice\sprint2\devices\python\sensor.py</code> in qualsiasi posizione del Raspberry Pi</li>
+                <li>Connettere l'hardware nel seguente modo:
+                    <ul>
+                        Sensore a ultrasuoni HC-SR04:
+                        <li>Trigger: GPIO 23</li>
+                        <li>Echo: GPIO 24</li>
+                        LED:
+                        <li>Anodo: GPIO 27</li>
+                        Pulsante:
+                        <li>GPIO 17</li>
+                    </ul>
+                </li>
+                <li>Lanciare il middleware python con <code>python3 sensor.py</code></li>
+                <li>Avviare il sistema con <code>java -jar devices-1.0-fat.jar</code></li>
+            </ol>
+            Il sistema è stato testato su Raspberry Pi 3B+. Il nome e numero dei GPIO può variare a seconda della versione. 
         </p>
 
         <h2>Considerazioni Sprint 2 e Goal Sprint 3</h2>
         <p>
-
+            Lo sprint è stato svolto entro le tempistiche preventivate, con un monte ore di 12 ore uomo. Francesco ha progettato
+            l'architettura QAK del contesto <tt>ctx_sensor</tt>, mentre Andrea ha implementato l'hardware, comandato da un middleware in Python. Per esigenze
+            di testing è stato implementato in hardware anche il <bc>pushbutton</bc>, che nel prossimo sprint verrà spostato nella interfaccia web, come da richiesta.
+            <br>Durante tutta la progettazione abbiamo agiornato questa documentazione come "diario di bordo".
         </p>
 
         <h3>Goal Sprint 3</h3>
         <p>
-
+            Nello Sprint 3, che pensiamo sarà l'ultimo sprint, implementeremo una interfaccia web che incorpora il <bc>pushbutton</bc> e il <bc>display</bc>.
+            Il sistema sarà completo e potremo concentrarci anche su rifiniture che non abbiamo ancora inserito, come la recovery dal fallimento del piano di
+            movimentazione del robot, avvio automatico del middleware python per il controllo dell'hardware e la definizione in un file di config dei vari parametri.<br>
+            Prevediamo un totale di 20 ore uomo, tra progettazione degli ultimi componenti e le rifiniture.
         </p>
 
     </div>
