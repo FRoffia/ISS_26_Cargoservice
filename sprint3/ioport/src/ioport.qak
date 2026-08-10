@@ -1,0 +1,128 @@
+System ioport
+
+//evento ricevuto da mqtt quando viene premuto pulsante
+Event    push  : push(X)
+
+//Request e replies per la richiesta di carico ricevuta da pusbutton
+Request  load_request  : load_request(X)
+Reply    load_accepted : load_accepted(SLOT) for load_request
+Reply    load_rejected : load_rejected(X)    for load_request
+Reply    retrylater    : retrylater(X)       for load_request
+
+//evento per chiedere a displayservice di mostrare un messaggio
+Event display : display(MESSAGE)
+
+//evento da pubblicare su mqtt per raggiungere web
+Event display_web : display_web(MESSAGE)
+
+//request e replies usate per chiedere a holdservice uno stato aggiornato della hold con una serie di numeri 0/1 indicanti lo stato di ciscuno slot
+Request get_hold_status : get_hold_status(X)
+Reply   hold_status     : hold_status(STATUS) for get_hold_status
+
+//evento lanciato da web quando c'è bisogno di un aggiornamento dello stato della hold
+Event hold_status_request : hold_status_request(X)
+
+Context  ctx_cargoservice ip [host="localhost" port= 8010]
+Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
+
+ExternalQActor cargoservice context ctx_cargoservice
+
+QActor ioservice context ctx_ioport{
+	
+	[#
+		var Message = ""
+	#]
+	
+	State s0 initial{
+		connectToMqttBroker "tcp://localhost:1883"
+		subscribe "pushbutton"
+	}
+	Goto wait_for_push
+	
+	State wait_for_push{
+		
+	}
+	Transition t0
+		whenEvent push -> send_push
+		
+	State send_push{
+		request cargoservice -m load_request : load_request(X)
+		[#Message = "button pressed, load request sent"#]
+		emitlocal display : display(Message)
+	}
+	Transition t0
+		whenReply 	 load_accepted -> accept
+		whenReply    load_rejected -> reject
+		whenReply    retrylater    -> retry
+		
+	State accept{
+		[# val Message = "load accepted"#]
+		publish "display" -m display_web : display_web($Message)
+	}
+	Goto wait_for_push
+	
+	State reject{
+		[# val Message = "load rejected"#]
+		publish "display" -m display_web : display_web($Message)
+	}
+	Goto wait_for_push
+	
+	State retry{
+		[# val Message = "retry later"#]
+		publish "display" -m display_web : display_web($Message)
+	}
+	Goto wait_for_push
+	
+}
+
+QActor displayservice context ctx_ioport{
+	
+	State s0 initial{
+		connectToMqttBroker "tcp://localhost:1883"
+		
+	}
+	Goto wait_for_display_event
+	
+	State wait_for_display_event{
+		
+	}
+	Transition t0
+		whenEvent display -> display_message
+		
+	State display_message{
+		onMsg(display : display(M)){
+			[# val Message = payloadArg(0)#]
+			publish "display" -m display_web : display_web($Message)
+		}
+	}
+	Goto wait_for_display_event
+}
+
+QActor holdstatusservice context ctx_ioport{
+	
+	State s0 initial{
+		connectToMqttBroker "tcp://localhost:1883"
+		subscribe "holdstatusrequest"
+	}
+	Goto wait_for_request
+	
+	State wait_for_request{
+		
+	}
+	Transition t0
+		whenEvent hold_status_request -> send_status_request
+		
+	State send_status_request {
+		request cargoservice -m get_hold_status : get_hold_status(X) 
+	}
+	Transition t0
+		whenReply hold_status -> update_hold_status
+		
+	State update_hold_status{
+		onMsg(hold_status : hold_status(S)){
+			[# val Message = payloadArg(0)#]
+			publish "display" -m display_web : display_web($Message)
+		}
+	}
+	Goto wait_for_request
+}
