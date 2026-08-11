@@ -29,7 +29,8 @@ class Displayservice ( name: String, scope: CoroutineScope, isconfined: Boolean=
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
-		 var Msg = ""  
+		 
+				var Msg = ""
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State

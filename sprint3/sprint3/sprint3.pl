@@ -31,11 +31,6 @@ dispatch( sensorError, sensorError(X) ).
 dispatch( sensorOK, sensorOK(X) ).
 dispatch( led_blink, led_blink(X) ).
 dispatch( led_off, led_off(X) ).
-dispatch( mock_cargo_present, mock_cargo_present(X) ).
-dispatch( mock_cargo_absent, mock_cargo_absent(X) ).
-dispatch( test_hold_full, test_hold_full(X) ).
-dispatch( test_hold_empty, test_hold_empty(X) ).
-dispatch( setDelay, setDelay(X) ).
 dispatch( already_home, already_home(X) ).
 event( display, display(MESSAGE) ).
 %====================================================================================

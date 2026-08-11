@@ -27,9 +27,13 @@ Context  ctx_ioport       ip [host="localhost" port=8040]
 ExternalQActor cargoservice context ctx_cargoservice
 ExternalQActor holdservice  context ctx_cargoservice 
 
-QActor ioservice context ctx_ioport{
-
-	[# var Msg = "" #]
+//intercetta la pressione del pulsante dall'interfaccia web, invia la load_request e ne attende la risposta,
+//inviando all'interfaccia web la risposta testuale di succeso o errore.
+QActor pushbuttonservice context ctx_ioport{
+	
+	[# 
+		var Msg = "" 
+	#]
 
 	State s0 initial{
 		connectToMqttBroker "tcp://localhost:1883"
@@ -85,9 +89,12 @@ QActor ioservice context ctx_ioport{
 
 }
 
+//intercetta tutte le richieste di stampa sul display e le invia al web server
 QActor displayservice context ctx_ioport{
 
-	[# var Msg = "" #]
+	[# 
+		var Msg = ""
+	#]
 
 	State s0 initial{
 		connectToMqttBroker "tcp://localhost:1883"
@@ -111,8 +118,11 @@ QActor displayservice context ctx_ioport{
 	Goto wait_for_display_event
 }
 
+//il web server chiede lo stato della hold a holdservice (ossia l'occupazione degli slot)
 QActor holdstatusservice context ctx_ioport{
-    [# var Status = "" #]
+    [# 
+    	var Status = ""
+    #]
 
     State s0 initial{
         connectToMqttBroker "tcp://localhost:1883"

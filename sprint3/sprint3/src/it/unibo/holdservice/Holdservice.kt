@@ -39,11 +39,9 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t032",targetState="look_for_empty_slot",cond=whenRequest("reserve_slot"))
-					transition(edgeName="t033",targetState="free_slot_state",cond=whenDispatch("free_slot"))
-					transition(edgeName="t034",targetState="set_full",cond=whenDispatch("test_hold_full"))
-					transition(edgeName="t035",targetState="set_empty",cond=whenDispatch("test_hold_empty"))
-					transition(edgeName="t036",targetState="send_hold_status",cond=whenRequest("get_hold_status"))
+					 transition(edgeName="t031",targetState="look_for_empty_slot",cond=whenRequest("reserve_slot"))
+					transition(edgeName="t032",targetState="free_slot_state",cond=whenDispatch("free_slot"))
+					transition(edgeName="t033",targetState="send_hold_status",cond=whenRequest("get_hold_status"))
 				}	 
 				state("look_for_empty_slot") { //this:State
 					action { //it:State
@@ -58,7 +56,6 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 						    				break
 						    			}
 									}
-									
 						if(  !EmptySlot.equals("no")  
 						 ){answer("reserve_slot", "reserve_ok", "reserve_ok($EmptySlot)"   )  
 						}
@@ -80,34 +77,6 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 									            val slotId = payloadArg(0).substringAfter("slot").toInt()
 									            hold.freeSlot(slotId)
 						}
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
-				}	 
-				state("set_full") { //this:State
-					action { //it:State
-						CommUtils.outblue("hold | test mode: set hold to full")
-							hold.occupySlot(1)
-									hold.occupySlot(2)
-									hold.occupySlot(3)
-									hold.occupySlot(4)
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="s0", cond=doswitch() )
-				}	 
-				state("set_empty") { //this:State
-					action { //it:State
-						CommUtils.outblue("hold | test mode: set hold to empty")
-							hold.freeSlot(1)
-									hold.freeSlot(2)
-									hold.freeSlot(3)
-									hold.freeSlot(4)
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

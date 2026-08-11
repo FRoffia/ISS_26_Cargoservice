@@ -1,6 +1,5 @@
 System sprint3
 
-
 //Request e replies per la richiesta di carico ricevuta da pusbutton
 Request  load_request  : load_request(X)
 Reply    load_accepted : load_accepted(X) for load_request
@@ -31,11 +30,11 @@ Event    container_in  : container_in(X)
 Request  moverobot       : moverobot(TARGETX, TARGETY,STEPTIME)
 Reply    moverobotdone   : moverobotok(ARG)                    for moverobot
 Reply    moverobotfailed : moverobotfailed(PLANDONE, PLANTODO) for moverobot
-Request setdirection : dir( D ) //set robot direction to D=up|down|left|right
-Reply setdirectiondone : pos(PX,PY) for setdirection
-Dispatch setrobotstate: setpos(X,Y,D) 		//"set robot position to (X,Y) direction D=up|down|left|right" 
-Request getrobotstate : getrobotstate(ARG)		//"request robot state ARG unused"
-Reply robotstate      : robotstate(POS,DIR)  for getrobotstate  //"POS->pos(X,Y) DIR->up|down|left|right"
+Request  setdirection : dir( D ) 				//set robot direction to D=up|down|left|right
+Reply    setdirectiondone : pos(PX,PY) for setdirection
+Dispatch setrobotstate: setpos(X,Y,D) 			//"set robot position to (X,Y) direction D=up|down|left|right" 
+Request  getrobotstate : getrobotstate(ARG)		//"request robot state ARG unused"
+Reply    robotstate      : robotstate(POS,DIR)  for getrobotstate  //"POS->pos(X,Y) DIR->up|down|left|right"
 
 //request e replies per comunicare con cargorobot
 Request  handle_cargo_load    : handle_cargo_load(TARGET_SLOT)
@@ -50,13 +49,6 @@ Dispatch sensorOK    : sensorOK(X)
 //messaggi per il led
 Dispatch led_blink : led_blink(X)
 Dispatch led_off   : led_off(X)
-
-//messaggi per il testing
-Dispatch mock_cargo_present : mock_cargo_present(X)
-Dispatch mock_cargo_absent : mock_cargo_absent(X)
-Dispatch test_hold_full : test_hold_full(X)
-Dispatch test_hold_empty : test_hold_empty(X)
-Dispatch setDelay : setDelay(X)
 
 //autodispatch
 Dispatch already_home     : already_home(X)   
@@ -103,18 +95,6 @@ QActor cargoservice context ctx_cargoservice {
     Transition t0
         whenRequest load_request -> evaluate_request
         whenMsg sensorError -> outOfService
-        whenMsg setDelay -> set_delay
-        
-    State set_delay {
-    	//setting delay for testing
-    	onMsg (setDelay : setDelay(D)){
-    		[# Delay = payloadArg(0).toInt()
-    			DelayLong = Delay.toLong()#
-    		]
-    	}
-    	println("cargoservice | setting delay for testing: $Delay ms") color blue
-    }
-    Goto disengaged
    
     State evaluate_request{
     	println("cargoservice | checking with hold if a slot is available") color blue
@@ -224,7 +204,6 @@ QActor cargoservice context ctx_cargoservice {
 
 QActor cargorobot context ctx_cargoservice {
 	[#
-		// stato
 		val Step = 335
 		
 		// (y,x)
@@ -269,14 +248,14 @@ QActor cargorobot context ctx_cargoservice {
     
     
     State goto_ioport{
-    	onMsg( handle_cargo_load : handle_cargo_load(TARGET_SLOT) ) {
+    	onMsg(handle_cargo_load : handle_cargo_load(TARGET_SLOT)){
     		//salvo in variabile globale lo slot in cui dovrò portare il cargo
 			[# 
 				Target_slot = payloadArg(0)
 			#]
 		}
 		
-		//recupero le coordinate di ioport e la raggiungo
+		//richiedo le coordinate di ioport e la raggiungo
 		[#
 			Destination = "io_port"
 			val coords = positions[Destination]!!
@@ -291,17 +270,15 @@ QActor cargorobot context ctx_cargoservice {
     	whenReply moverobotdone -> goto_slot5
     	whenReply moverobotfailed -> handle_move_error
     	
-    
+    	
     State handle_move_error{
     	println("cargorobot | move error, could not complete cargo load") color red
-    	
     	replyTo handle_cargo_load with cargo_load_failed : cargo_load_failed(X)
     }
     
     
     State goto_slot5{
-    	//simuliamo tempo di carico del cargo
-    	delay 3000
+    	delay 2000 //simuliamo tempo di carico del cargo
     	println("cargorobot | moving towards slot5...") color green
     	[#
 			Destination = "slot5"
@@ -313,7 +290,7 @@ QActor cargorobot context ctx_cargoservice {
 		request robotsmart -m moverobot : moverobot($X, $Y, $Step)
     }
     Transition t0
-    	whenReply moverobotdone -> goto_target_slot//arrived_at_slot5
+    	whenReply moverobotdone -> goto_target_slot
     	whenReply moverobotfailed -> handle_move_error
 
 
@@ -324,16 +301,12 @@ QActor cargorobot context ctx_cargoservice {
 		#]
 		println("$name | turning $Direction ...") color magenta
 		forward robotsmart -m setrobotstate : setpos($X,$Y,$Direction)
-		
-		//simuliamo tempo di marking del cargo nello slot 5
-    	delay 5000
 	}
 	Goto goto_target_slot
 	
 
 	State goto_target_slot{
-		//simuliamo tempo di marking del cargo nello slot 5
-    	delay 2000
+    	delay 2000 //simuliamo tempo di marking del cargo nello slot 5
     	println("cargorobot | moving towards $Target_slot...") color green
     	[#
 			val coords = positions[Target_slot]!!
@@ -346,7 +319,7 @@ QActor cargorobot context ctx_cargoservice {
 		
 	}
 	Transition t0
-    	whenReply moverobotdone -> cargo_load_done//arrived_at_target_slot
+    	whenReply moverobotdone -> cargo_load_done
     	whenReply moverobotfailed -> handle_move_error
     	
     	
@@ -363,8 +336,7 @@ QActor cargorobot context ctx_cargoservice {
 
     	
 	State goto_home{
-		//controlliamo se il robot si trova già in home
-		request robotsmart -m getrobotstate : getrobotstate(ARG)
+		request robotsmart -m getrobotstate : getrobotstate(ARG) //controlliamo se il robot si trova già in home
 	}
 	Transition t0
 		whenReply robotstate -> evaluate_home
@@ -372,7 +344,6 @@ QActor cargorobot context ctx_cargoservice {
 	
 	State evaluate_home{
 		onMsg( robotstate : robotstate(POS,D) ) {
-    		//salvo in variabile globale lo slot in cui dovrò portare il cargo
 			[# 
 				input_cur_pos = payloadArg(0)
 				val inner = input_cur_pos.substringAfter("(").substringBefore(")")
@@ -394,8 +365,6 @@ QActor cargorobot context ctx_cargoservice {
 			Y = coords[1]
 		#]
 		
-		//println("cargorobot | cheking if already home, msg: $input_cur_pos, cur: ${cur_coordinates[0]} , ${cur_coordinates[1]}") color yellow
-		
 		if [# X != cur_coordinates[0] && Y != cur_coordinates[1] #] {
 			println("cargorobot | moving towards home...") color green
 		
@@ -406,7 +375,7 @@ QActor cargorobot context ctx_cargoservice {
 		
 	}
 	Transition t0
-    	whenReply moverobotdone -> s0//arrived_at_home
+    	whenReply moverobotdone -> s0
     	whenReply moverobotfailed -> handle_move_error
     	whenMsg already_home -> s0
 	
@@ -421,11 +390,9 @@ QActor cargorobot context ctx_cargoservice {
 	Transition t0
 		whenReply setdirectiondone -> s0
 	
-	
+	//fine ciclo di movimentazione
 	State cargo_load_done{
-		//simuliamo tempo di scarico del cargo
-    	delay 2000
-		
+    	delay 500
 		replyTo handle_cargo_load with cargo_load_success : cargo_load_success(X)
 	}
 	Goto s0
@@ -442,8 +409,6 @@ QActor holdservice context ctx_cargoservice{
 	Transition t0
 		whenRequest reserve_slot -> look_for_empty_slot
 		whenMsg free_slot -> free_slot_state
-		whenMsg test_hold_full -> set_full
-		whenMsg test_hold_empty -> set_empty
 		whenRequest get_hold_status -> send_hold_status
 	
 	State look_for_empty_slot {
@@ -458,14 +423,12 @@ QActor holdservice context ctx_cargoservice{
     				break
     			}
 			}
-			
 		#]
 		
 		//Se trovo slot mando risposta positiva, altrimenti negativa
 		if [# !EmptySlot.equals("no") #] {
 			replyTo reserve_slot with reserve_ok : reserve_ok($EmptySlot)
 		} else {
-			
 			replyTo reserve_slot with reserve_fail : reserve_fail(X)
 		}
 	}
@@ -482,29 +445,6 @@ QActor holdservice context ctx_cargoservice{
 		}
 	Goto s0
 	
-	
-	State set_full{
-		println("hold | test mode: set hold to full") color blue
-		
-		[#	hold.occupySlot(1)
-			hold.occupySlot(2)
-			hold.occupySlot(3)
-			hold.occupySlot(4)
-		#]
-	}
-	Goto s0
-	
-	State set_empty{
-		println("hold | test mode: set hold to empty") color blue
-		
-		[#	hold.freeSlot(1)
-			hold.freeSlot(2)
-			hold.freeSlot(3)
-			hold.freeSlot(4)
-		#]
-	}
-	Goto s0
-	
 	State send_hold_status {
 		[#
 			val hold_status = hold.getSlotsOccupation()
@@ -517,7 +457,4 @@ QActor holdservice context ctx_cargoservice{
 		replyTo get_hold_status with hold_status : hold_status($Msg)
 	}
 	Goto s0
-	
-	
-
 }

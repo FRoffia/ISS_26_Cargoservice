@@ -34,7 +34,9 @@ Context  ctx_cargoservice ip [host="192.168.178.81" port=8010]
 ExternalQActor cargoservice context ctx_cargoservice
 
 QActor sensorservice context ctx_sensor{
+	//avvio il middleware python per il controllo hardware e inizializzo le variabili del sistema
 	[#
+		Runtime.getRuntime().exec("python3 sensor.py")
 		val DFREE = 50
 		var container_present = false
 		var out_of_service = false

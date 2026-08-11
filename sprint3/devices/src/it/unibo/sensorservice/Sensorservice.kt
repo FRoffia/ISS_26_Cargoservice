@@ -30,6 +30,7 @@ class Sensorservice ( name: String, scope: CoroutineScope, isconfined: Boolean=f
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
 		
+				Runtime.getRuntime().exec("python3 sensor.py")
 				val DFREE = 50
 				var container_present = false
 				var out_of_service = false

@@ -29,7 +29,8 @@ class Holdstatusservice ( name: String, scope: CoroutineScope, isconfined: Boole
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
-		 var Status = ""  
+		 
+		    	var Status = ""
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State

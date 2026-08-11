@@ -59,22 +59,6 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					}	 	 
 					 transition(edgeName="t00",targetState="evaluate_request",cond=whenRequest("load_request"))
 					transition(edgeName="t01",targetState="outOfService",cond=whenDispatch("sensorError"))
-					transition(edgeName="t02",targetState="set_delay",cond=whenDispatch("setDelay"))
-				}	 
-				state("set_delay") { //this:State
-					action { //it:State
-						if( checkMsgContent( Term.createTerm("setDelay(X)"), Term.createTerm("setDelay(D)"), 
-						                        currentMsg.msgContent()) ) { //set msgArgList
-								 Delay = payloadArg(0).toInt()
-								    			DelayLong = Delay.toLong() 
-						}
-						CommUtils.outblue("cargoservice | setting delay for testing: $Delay ms")
-						//genTimer( actor, state )
-					}
-					//After Lenzi Aug2002
-					sysaction { //it:State
-					}	 	 
-					 transition( edgeName="goto",targetState="disengaged", cond=doswitch() )
 				}	 
 				state("evaluate_request") { //this:State
 					action { //it:State
@@ -85,9 +69,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t03",targetState="check_ioport",cond=whenReply("reserve_ok"))
-					transition(edgeName="t04",targetState="load_rejected",cond=whenReply("reserve_fail"))
-					transition(edgeName="t05",targetState="outOfService",cond=whenDispatch("sensorError"))
+					 transition(edgeName="t02",targetState="check_ioport",cond=whenReply("reserve_ok"))
+					transition(edgeName="t03",targetState="load_rejected",cond=whenReply("reserve_fail"))
+					transition(edgeName="t04",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("load_rejected") { //this:State
 					action { //it:State
@@ -115,9 +99,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t06",targetState="retry_later",cond=whenReply("cargo_present"))
-					transition(edgeName="t07",targetState="send_accept",cond=whenReply("cargo_absent"))
-					transition(edgeName="t08",targetState="outOfService",cond=whenDispatch("sensorError"))
+					 transition(edgeName="t05",targetState="retry_later",cond=whenReply("cargo_present"))
+					transition(edgeName="t06",targetState="send_accept",cond=whenReply("cargo_absent"))
+					transition(edgeName="t07",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("retry_later") { //this:State
 					action { //it:State
@@ -152,9 +136,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				 	 		stateTimer = TimerActor("timer_waitforcargo", 
 				 	 					  scope, context!!, "local_tout_"+name+"_waitforcargo", DelayLong )  //OCT2023
 					}	 	 
-					 transition(edgeName="t09",targetState="cargo_timeout",cond=whenTimeout("local_tout_"+name+"_waitforcargo"))   
-					transition(edgeName="t010",targetState="engaged",cond=whenEvent("container_in"))
-					transition(edgeName="t011",targetState="outOfService",cond=whenDispatch("sensorError"))
+					 transition(edgeName="t08",targetState="cargo_timeout",cond=whenTimeout("local_tout_"+name+"_waitforcargo"))   
+					transition(edgeName="t09",targetState="engaged",cond=whenEvent("container_in"))
+					transition(edgeName="t010",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("cargo_timeout") { //this:State
 					action { //it:State
@@ -181,9 +165,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t012",targetState="checkloadqueue",cond=whenReply("cargo_load_success"))
-					transition(edgeName="t013",targetState="disengaged",cond=whenReply("cargo_load_failed"))
-					transition(edgeName="t014",targetState="outOfService",cond=whenDispatch("sensorError"))
+					 transition(edgeName="t011",targetState="checkloadqueue",cond=whenReply("cargo_load_success"))
+					transition(edgeName="t012",targetState="disengaged",cond=whenReply("cargo_load_failed"))
+					transition(edgeName="t013",targetState="outOfService",cond=whenDispatch("sensorError"))
 				}	 
 				state("checkloadqueue") { //this:State
 					action { //it:State
@@ -194,8 +178,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				 	 		stateTimer = TimerActor("timer_checkloadqueue", 
 				 	 					  scope, context!!, "local_tout_"+name+"_checkloadqueue", 10.toLong() )  //OCT2023
 					}	 	 
-					 transition(edgeName="t015",targetState="s0",cond=whenTimeout("local_tout_"+name+"_checkloadqueue"))   
-					transition(edgeName="t016",targetState="evaluate_request",cond=whenRequest("load_request"))
+					 transition(edgeName="t014",targetState="s0",cond=whenTimeout("local_tout_"+name+"_checkloadqueue"))   
+					transition(edgeName="t015",targetState="evaluate_request",cond=whenRequest("load_request"))
 				}	 
 				state("outOfService") { //this:State
 					action { //it:State
@@ -207,8 +191,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t017",targetState="reply_oos",cond=whenRequest("load_request"))
-					transition(edgeName="t018",targetState="s0",cond=whenDispatch("sensorOK"))
+					 transition(edgeName="t016",targetState="reply_oos",cond=whenRequest("load_request"))
+					transition(edgeName="t017",targetState="s0",cond=whenDispatch("sensorOK"))
 				}	 
 				state("reply_oos") { //this:State
 					action { //it:State

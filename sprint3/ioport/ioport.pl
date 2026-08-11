@@ -16,8 +16,8 @@ context(ctx_cargoservice, "192.168.178.81",  "TCP", "8010").
 context(ctx_ioport, "localhost",  "TCP", "8040").
  qactor( cargoservice, ctx_cargoservice, "external").
   qactor( holdservice, ctx_cargoservice, "external").
-  qactor( ioservice, ctx_ioport, "it.unibo.ioservice.Ioservice").
- static(ioservice).
+  qactor( pushbuttonservice, ctx_ioport, "it.unibo.pushbuttonservice.Pushbuttonservice").
+ static(pushbuttonservice).
   qactor( displayservice, ctx_ioport, "it.unibo.displayservice.Displayservice").
  static(displayservice).
   qactor( holdstatusservice, ctx_ioport, "it.unibo.holdstatusservice.Holdstatusservice").

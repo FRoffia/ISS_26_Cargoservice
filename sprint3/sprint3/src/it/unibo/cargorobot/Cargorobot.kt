@@ -30,7 +30,6 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
 		
-				// stato
 				val Step = 335
 				
 				// (y,x)
@@ -72,8 +71,8 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t019",targetState="goto_ioport",cond=whenRequest("handle_cargo_load"))
-					transition(edgeName="t020",targetState="goto_home",cond=whenDispatch("send_home"))
+					 transition(edgeName="t018",targetState="goto_ioport",cond=whenRequest("handle_cargo_load"))
+					transition(edgeName="t019",targetState="goto_home",cond=whenDispatch("send_home"))
 				}	 
 				state("goto_ioport") { //this:State
 					action { //it:State
@@ -94,8 +93,8 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t021",targetState="goto_slot5",cond=whenReply("moverobotdone"))
-					transition(edgeName="t022",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t020",targetState="goto_slot5",cond=whenReply("moverobotdone"))
+					transition(edgeName="t021",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("handle_move_error") { //this:State
 					action { //it:State
@@ -109,7 +108,7 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 				}	 
 				state("goto_slot5") { //this:State
 					action { //it:State
-						delay(3000) 
+						delay(2000) 
 						CommUtils.outgreen("cargorobot | moving towards slot5...")
 						
 									Destination = "slot5"
@@ -122,8 +121,8 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t023",targetState="goto_target_slot",cond=whenReply("moverobotdone"))
-					transition(edgeName="t024",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t022",targetState="goto_target_slot",cond=whenReply("moverobotdone"))
+					transition(edgeName="t023",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("arrived_at_slot5") { //this:State
 					action { //it:State
@@ -132,7 +131,6 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 									val Direction = directions[Destination]!!
 						CommUtils.outmagenta("$name | turning $Direction ...")
 						forward("setrobotstate", "setpos($X,$Y,$Direction)" ,"robotsmart" ) 
-						delay(5000) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -154,8 +152,8 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t025",targetState="cargo_load_done",cond=whenReply("moverobotdone"))
-					transition(edgeName="t026",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					 transition(edgeName="t024",targetState="cargo_load_done",cond=whenReply("moverobotdone"))
+					transition(edgeName="t025",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
 				}	 
 				state("arrived_at_target_slot") { //this:State
 					action { //it:State
@@ -178,7 +176,7 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t027",targetState="evaluate_home",cond=whenReply("robotstate"))
+					 transition(edgeName="t026",targetState="evaluate_home",cond=whenReply("robotstate"))
 				}	 
 				state("evaluate_home") { //this:State
 					action { //it:State
@@ -213,9 +211,9 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t028",targetState="s0",cond=whenReply("moverobotdone"))
-					transition(edgeName="t029",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
-					transition(edgeName="t030",targetState="s0",cond=whenDispatch("already_home"))
+					 transition(edgeName="t027",targetState="s0",cond=whenReply("moverobotdone"))
+					transition(edgeName="t028",targetState="handle_move_error",cond=whenReply("moverobotfailed"))
+					transition(edgeName="t029",targetState="s0",cond=whenDispatch("already_home"))
 				}	 
 				state("arrived_at_home") { //this:State
 					action { //it:State
@@ -228,11 +226,11 @@ class Cargorobot ( name: String, scope: CoroutineScope, isconfined: Boolean=fals
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t031",targetState="s0",cond=whenReply("setdirectiondone"))
+					 transition(edgeName="t030",targetState="s0",cond=whenReply("setdirectiondone"))
 				}	 
 				state("cargo_load_done") { //this:State
 					action { //it:State
-						delay(2000) 
+						delay(500) 
 						answer("handle_cargo_load", "cargo_load_success", "cargo_load_success(X)"   )  
 						//genTimer( actor, state )
 					}

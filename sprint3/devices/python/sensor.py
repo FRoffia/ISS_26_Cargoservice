@@ -43,12 +43,8 @@ def parse_qak_message(payload):
 
 def on_message(client, userdata, msg):
     global blink_active, blink_thread
-
     raw = msg.payload.decode()
-    print("RX RAW:", raw)
-
     content = parse_qak_message(raw)
-    print("QAK content:", content)
 
     if content is None:
         return
@@ -59,13 +55,12 @@ def on_message(client, userdata, msg):
         led.off()
 
     elif content.startswith("led_blink_hw"):
-        print("LED BLINK infinito")
+        print("LED BLINK")
         if not blink_active:
             blink_active = True
             blink_thread = threading.Thread(target=blink_loop, daemon=True)
             blink_thread.start()
 
-# ordine corretto: prima definisco tutte le funzioni, POI le collego
 clientSensor.connect(MQTT_BROKER, MQTT_PORT, 30)
 clientPush.connect(MQTT_BROKER, MQTT_PORT, 30)
 clientLed.connect(MQTT_BROKER, MQTT_PORT, 30)
