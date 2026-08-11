@@ -12,9 +12,10 @@ request( get_hold_status, get_hold_status(X) ).
 reply( hold_status, hold_status(STATUS) ).  %%for get_hold_status
 event( hold_status_request, hold_status_request(X) ).
 %====================================================================================
-context(ctx_cargoservice, "localhost",  "TCP", "8010").
-context(ctx_ioport, "127.0.0.3",  "TCP", "8040").
+context(ctx_cargoservice, "192.168.178.81",  "TCP", "8010").
+context(ctx_ioport, "localhost",  "TCP", "8040").
  qactor( cargoservice, ctx_cargoservice, "external").
+  qactor( holdservice, ctx_cargoservice, "external").
   qactor( ioservice, ctx_ioport, "it.unibo.ioservice.Ioservice").
  static(ioservice).
   qactor( displayservice, ctx_ioport, "it.unibo.displayservice.Displayservice").

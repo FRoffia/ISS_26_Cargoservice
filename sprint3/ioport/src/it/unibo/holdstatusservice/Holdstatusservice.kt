@@ -29,6 +29,7 @@ class Holdstatusservice ( name: String, scope: CoroutineScope, isconfined: Boole
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
+		 var Status = ""  
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -48,26 +49,26 @@ class Holdstatusservice ( name: String, scope: CoroutineScope, isconfined: Boole
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t05",targetState="send_status_request",cond=whenEvent("hold_status_request"))
+					 transition(edgeName="t09",targetState="send_status_request",cond=whenEvent("hold_status_request"))
 				}	 
 				state("send_status_request") { //this:State
 					action { //it:State
-						request("get_hold_status", "get_hold_status(X)" ,"cargoservice" )  
+						request("get_hold_status", "get_hold_status(X)" ,"holdservice" )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t06",targetState="update_hold_status",cond=whenReply("hold_status"))
+					 transition(edgeName="t010",targetState="update_hold_status",cond=whenReply("hold_status"))
 				}	 
 				state("update_hold_status") { //this:State
 					action { //it:State
 						if( checkMsgContent( Term.createTerm("hold_status(STATUS)"), Term.createTerm("hold_status(S)"), 
 						                        currentMsg.msgContent()) ) { //set msgArgList
-								 val Message = payloadArg(0) 
-								//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Message)" ) 
-								publish(MsgUtil.buildEvent(name,"display_web","display_web($Message)").toString(), "display" )   
+								 Status = payloadArg(0)  
 						}
+						//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Status)" ) 
+						publish(MsgUtil.buildEvent(name,"display_web","display_web($Status)").toString(), "display" )   
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

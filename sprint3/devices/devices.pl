@@ -25,5 +25,3 @@ context(ctx_cargoservice, "192.168.178.81",  "TCP", "8010").
  static(sensorservice).
   qactor( ledservice, ctx_sensor, "it.unibo.ledservice.Ledservice").
  static(ledservice).
-  qactor( mock_pusbutton, ctx_sensor, "it.unibo.mock_pusbutton.Mock_pusbutton").
- static(mock_pusbutton).

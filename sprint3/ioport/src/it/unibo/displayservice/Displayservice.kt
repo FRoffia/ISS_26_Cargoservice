@@ -29,6 +29,7 @@ class Displayservice ( name: String, scope: CoroutineScope, isconfined: Boolean=
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
+		 var Msg = ""  
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -47,15 +48,16 @@ class Displayservice ( name: String, scope: CoroutineScope, isconfined: Boolean=
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t04",targetState="display_message",cond=whenEvent("display"))
+					 transition(edgeName="t08",targetState="display_message",cond=whenEvent("display"))
 				}	 
 				state("display_message") { //this:State
 					action { //it:State
 						if( checkMsgContent( Term.createTerm("display(MESSAGE)"), Term.createTerm("display(M)"), 
 						                        currentMsg.msgContent()) ) { //set msgArgList
-								 val Message = payloadArg(0) 
-								//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Message)" ) 
-								publish(MsgUtil.buildEvent(name,"display_web","display_web($Message)").toString(), "display" )   
+								 Msg = payloadArg(0) 
+								CommUtils.outgreen("display | message: $Msg")
+								//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Msg)" ) 
+								publish(MsgUtil.buildEvent(name,"display_web","display_web($Msg)").toString(), "display" )   
 						}
 						//genTimer( actor, state )
 					}

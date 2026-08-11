@@ -59,17 +59,21 @@ Dispatch test_hold_empty : test_hold_empty(X)
 Dispatch setDelay : setDelay(X)
 
 //autodispatch
-Dispatch already_home     : already_home(X)       
+Dispatch already_home     : already_home(X)   
+
+//invio messaggio al display di ioport
+Event display : display(MESSAGE)    
 
 
 Context  ctx_cargoservice ip [host="localhost" port= 8010]
 Context  ctxrobotsmart    ip [host="127.0.0.1" port=8020]
 Context  ctx_sensor       ip [host="rpi" port=8030]
-Context  ctx_ioport       ip [host="127.0.0.3" port=8040]
+Context  ctx_ioport       ip [host="127.0.0.2" port=8040]
 
-ExternalQActor robotsmart 	 context ctxrobotsmart
-ExternalQActor sensorservice context ctx_sensor
-ExternalQActor ledservice    context ctx_sensor
+ExternalQActor robotsmart 	  context ctxrobotsmart
+ExternalQActor sensorservice  context ctx_sensor
+ExternalQActor ledservice     context ctx_sensor
+ExternalQActor displayservice context ctx_ioport
 
 //attore principale del core business del sistema.
 QActor cargoservice context ctx_cargoservice {
@@ -78,11 +82,11 @@ QActor cargoservice context ctx_cargoservice {
 		var Cur_reserved_slot = ""
 		var Delay = 30000
 		var DelayLong = 30000L
+		var Msg = ""
 	#] 
 	
 	//dai requisiti, gli stati del sistema sono: ENGAGED, DISENGAGED, OUTOFSERVICE
     State s0 initial {
-    	delegate get_hold_status to holdservice
         forward cargorobot -m send_home : send_home(X)
         forward ledservice -m led_off : led_off(X)
     }
@@ -90,7 +94,10 @@ QActor cargoservice context ctx_cargoservice {
 
 
     State disengaged {
+    	[# Msg = "DISENGAGED"#]
+    	emit display : display($Msg)
 		println("cargoservice | DISENGAGED: waiting for cargo load request") color green
+		
 		forward ledservice -m led_off : led_off(X)
     }
     Transition t0
@@ -120,14 +127,9 @@ QActor cargoservice context ctx_cargoservice {
     	
     	
 	State load_rejected{
-		
-		[# 
-			val Error = "No slots available, load is rejected."
-		#]
-		
-		println("cargoservice | $Error") color red
-		
-		replyTo load_request with load_rejected : load_rejected($Error)
+		[# val Err = "no_slots_avail" #]
+		println("cargoservice | No slots available. Load is rejected.") color red
+		replyTo load_request with load_rejected : load_rejected($Err)
 	}
 	Goto checkloadqueue
 
@@ -151,25 +153,21 @@ QActor cargoservice context ctx_cargoservice {
 		
 		
 	State retry_later{
-		[# 
-			val Error = "IOPort is already occupied by a cargo, retry later."
-		#]
-		
-		println("cargoservice | $Error") color red
-		
+		[# val Err = "already_occupied" #]
+		println("cargoservice | IOPort is already occupied by a cargo. Retry later.") color red
 		forward holdservice -m free_slot : free_slot($Cur_reserved_slot)
-		replyTo load_request with retrylater : retrylater($Error)
+		replyTo load_request with retrylater : retrylater($Err)
 	}
 	Goto checkloadqueue	
 		
 		
 	State send_accept{
-		replyTo load_request with load_accepted : load_accepted(X)
+		replyTo load_request with load_accepted : load_accepted($Cur_reserved_slot)
 	}
 	Goto waitforcargo
-		
+	
+	//aspetto 30 secondi che arrivi un cargo in ioport, altrimenti torno in disengaged
 	State waitforcargo{
-		//aspetto 30 secondi che arrivi un cargo in ioport, altrimenti torno in disengaged
 		println("cargoservice | PLACE CARGO AT IOPORT") color red
 	}
 	Transition t0
@@ -177,22 +175,22 @@ QActor cargoservice context ctx_cargoservice {
 		whenEvent container_in -> engaged
 		whenMsg sensorError -> outOfService
 		
-		
+	//il cargo non è arrivato nella ioport entro 30 sec, rispondiamo alla richiesta di carico e torniamo a disengaged
 	State cargo_timeout{
-		//il cargo non è arrivato nella ioport entro 30 sec, rispondiamo alla richiesta di carico e torniamo a disengaged
-		[# 
-			val Error = "No cargo has arrived in IOPort, timeout."
-		#]
+		[# Msg = "not_arrived" #]
+		emit display : display($Msg)
+		println("cargoservice | No cargo has arrived in IOPort. Timeout.") color red
 		
 		forward holdservice -m free_slot : free_slot($Cur_reserved_slot)
-		println("cargoservice | $Error") color red
 	}
 	Goto checkloadqueue
 
-
+	//inviamo la richiesta di carico al robot con lo slotID
     State engaged {
-    	//inviamo la richiesta di carico al robot con lo slotID
+    	[# Msg = "ENGAGED" #]
+    	emit display : display($Msg)
     	println("cargoservice | System engaged, load operation is being handled by cargorobot") color blue
+    	
     	request cargorobot -m handle_cargo_load : handle_cargo_load($Cur_reserved_slot)
     	forward ledservice -m led_blink : led_blink(X)
     }
@@ -207,9 +205,10 @@ QActor cargoservice context ctx_cargoservice {
 		whenTime 10 -> s0
 		whenRequest load_request -> evaluate_request
 		
-
+	//gestisco out of service
     State outOfService {
-    	//gestisco out of service
+    	[# Msg = "OUT_OF_SERVICE" #]
+		emit display : display($Msg)
     	println("cargoservice | sensor error: OUT OF SERVICE!") color red
     }
     Transition t0
@@ -217,7 +216,8 @@ QActor cargoservice context ctx_cargoservice {
      whenMsg sensorOK -> s0
      
     State reply_oos {
-    	replyTo load_request with retrylater : retrylater(X)
+    	[# Msg = "out_of_service" #]
+    	replyTo load_request with retrylater : retrylater($Msg)
     } Goto outOfService
     
 }
@@ -446,11 +446,11 @@ QActor holdservice context ctx_cargoservice{
 		whenMsg test_hold_empty -> set_empty
 		whenRequest get_hold_status -> send_hold_status
 	
-	State look_for_empty_slot{
+	State look_for_empty_slot {
 		[#
 			val slotsOccupation = hold.getSlotsOccupation()
 			var EmptySlot = "no"
-			
+			 
 			for ((i,occupation) in slotsOccupation.withIndex()) {
     			if(!occupation){
     				EmptySlot = "slot"+(i+1)
@@ -510,8 +510,8 @@ QActor holdservice context ctx_cargoservice{
 			val hold_status = hold.getSlotsOccupation()
 			var Msg = ""
 			
-			for ((occupation) in hold_status) {
-				Msg += occupation
+			for (occupation in hold_status) {
+			    Msg += if (occupation) "1" else "0"
 			}
 		#]
 		replyTo get_hold_status with hold_status : hold_status($Msg)

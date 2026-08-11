@@ -33,10 +33,10 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				var Cur_reserved_slot = ""
 				var Delay = 30000
 				var DelayLong = 30000L
+				var Msg = ""
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
-						delegate("get_hold_status", "holdservice") 
 						forward("send_home", "send_home(X)" ,"cargorobot" ) 
 						forward("led_off", "led_off(X)" ,"ledservice" ) 
 						//genTimer( actor, state )
@@ -48,6 +48,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("disengaged") { //this:State
 					action { //it:State
+						 Msg = "DISENGAGED" 
+						emit("display", "display($Msg)" ) 
 						CommUtils.outgreen("cargoservice | DISENGAGED: waiting for cargo load request")
 						forward("led_off", "led_off(X)" ,"ledservice" ) 
 						//genTimer( actor, state )
@@ -89,10 +91,9 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("load_rejected") { //this:State
 					action { //it:State
-						 
-									val Error = "No slots available, load is rejected."
-						CommUtils.outred("cargoservice | $Error")
-						answer("load_request", "load_rejected", "load_rejected($Error)"   )  
+						 val Err = "no_slots_avail"  
+						CommUtils.outred("cargoservice | No slots available. Load is rejected.")
+						answer("load_request", "load_rejected", "load_rejected($Err)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -120,11 +121,10 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("retry_later") { //this:State
 					action { //it:State
-						 
-									val Error = "IOPort is already occupied by a cargo, retry later."
-						CommUtils.outred("cargoservice | $Error")
+						 val Err = "already_occupied"  
+						CommUtils.outred("cargoservice | IOPort is already occupied by a cargo. Retry later.")
 						forward("free_slot", "free_slot($Cur_reserved_slot)" ,"holdservice" ) 
-						answer("load_request", "retrylater", "retrylater($Error)"   )  
+						answer("load_request", "retrylater", "retrylater($Err)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -134,7 +134,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("send_accept") { //this:State
 					action { //it:State
-						answer("load_request", "load_accepted", "load_accepted(X)"   )  
+						answer("load_request", "load_accepted", "load_accepted($Cur_reserved_slot)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -158,10 +158,10 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("cargo_timeout") { //this:State
 					action { //it:State
-						 
-									val Error = "No cargo has arrived in IOPort, timeout."
+						 Msg = "not_arrived"  
+						emit("display", "display($Msg)" ) 
+						CommUtils.outred("cargoservice | No cargo has arrived in IOPort. Timeout.")
 						forward("free_slot", "free_slot($Cur_reserved_slot)" ,"holdservice" ) 
-						CommUtils.outred("cargoservice | $Error")
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -171,6 +171,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("engaged") { //this:State
 					action { //it:State
+						 Msg = "ENGAGED"  
+						emit("display", "display($Msg)" ) 
 						CommUtils.outblue("cargoservice | System engaged, load operation is being handled by cargorobot")
 						request("handle_cargo_load", "handle_cargo_load($Cur_reserved_slot)" ,"cargorobot" )  
 						forward("led_blink", "led_blink(X)" ,"ledservice" ) 
@@ -197,6 +199,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("outOfService") { //this:State
 					action { //it:State
+						 Msg = "OUT_OF_SERVICE"  
+						emit("display", "display($Msg)" ) 
 						CommUtils.outred("cargoservice | sensor error: OUT OF SERVICE!")
 						//genTimer( actor, state )
 					}
@@ -208,7 +212,8 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("reply_oos") { //this:State
 					action { //it:State
-						answer("load_request", "retrylater", "retrylater(X)"   )  
+						 Msg = "out_of_service"  
+						answer("load_request", "retrylater", "retrylater($Msg)"   )  
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

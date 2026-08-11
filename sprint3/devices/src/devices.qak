@@ -123,30 +123,3 @@ QActor ledservice context ctx_sensor{
 	Goto wait_for_msg
 		
 }
-
-QActor mock_pusbutton context ctx_sensor{
-	State s0 initial {
-		connectToMqttBroker "tcp://192.168.178.81:1883"
-		subscribe "push"
-	}
-	Goto work
-	
-	State work{
-		//aspetto evento dal programma python
-	}
-	Transition t0
-		whenEvent push -> send_load_request
-		whenReply load_accepted -> work
-		whenReply load_rejected -> work
-		whenReply retrylater -> work
-	
-	State send_load_request {
-		println("mock_pushbutton | sent load_request")
-		request cargoservice -m load_request : load_request(X)
-	}
-	Transition t0
-		whenEvent push -> send_load_request
-		whenReply load_accepted -> work
-		whenReply load_rejected -> work
-		whenReply retrylater -> work
-}

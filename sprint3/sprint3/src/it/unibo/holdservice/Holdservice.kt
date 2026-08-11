@@ -50,7 +50,7 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 						
 									val slotsOccupation = hold.getSlotsOccupation()
 									var EmptySlot = "no"
-									
+									 
 									for ((i,occupation) in slotsOccupation.withIndex()) {
 						    			if(!occupation){
 						    				EmptySlot = "slot"+(i+1)
@@ -121,8 +121,8 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 									val hold_status = hold.getSlotsOccupation()
 									var Msg = ""
 									
-									for ((occupation) in hold_status) {
-										Msg += occupation
+									for (occupation in hold_status) {
+									    Msg += if (occupation) "1" else "0"
 									}
 						answer("get_hold_status", "hold_status", "hold_status($Msg)"   )  
 						//genTimer( actor, state )
