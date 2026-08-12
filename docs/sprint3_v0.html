@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="mystyle.css">
+    <meta charset="UTF-8">
+    <title>Sprint 3</title>
+</head>
+<body>
+
+    <div id="top">
+        <h1>Sprint 3_v0: Analisi del Problema e Implementazione di IOPort (pushbutton, display)</h1>
+    </div>
+
+    <div class="body">
+
+        <h2>Punto di partenza</h2>
+        <p>
+            Nello <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint2_v0.html">Sprint 2</a>, grazie
+            all'analisi del problema e alla relativa implementazione, abbiamo realizzato la componente hardware richiesta, ovvero
+            il <bc>sensor</bc> e il <bc>led</bc>, che comunicano attraverso messaggi con cargoservice. Per esigenze di testing,
+            anche il pushbutton era implementato a livello hardware. Di seguito l'architettura prodotta alla fine dello Sprint 2, includendo entrambi
+            i contesti sviluppati ctx_cargoservice e ctx_sensor. 
+        <!-- INSERIRE IMMAGINI ARCH-->
+        </p>
+
+        <h2>Goal</h2>
+        <p>
+            In questo sprint svolgiamo l'analisi del problema e l'implementazione dei componenti
+            <bc>pushbutton</bc> e <bc>display</bc>, che, come precisato dal committente, sono rappresentati in una interfaccia web (che chiameremo <bc>WebGUI</bc>),
+            su un nodo separato sia dal nodo che ospita <bc>cargoservice</bc>, dal nodo di
+            bordo del <bc>cargorobot</bc> e dal Raspberry Pi che ospita<bc>sensorservice</bc>. 
+            In particolare, al termine dello Sprint 3 il sistema dovrà essere in grado di mostrare sulla WebGUI:
+            <ul>
+                <li>Il pushbutton per inviare la richiesta di carico</li>
+                <li>Lo stato del sistema, ossia se si trova in stato ENGAGED, DISENGAGED, OUT OF SERVICE</li>
+                <li>La risposta alla richiesta di carico</li>
+                <li>L'occupazione dei 4 Slot (libero o occupato)</li>
+            </ul>
+
+        </p>
+
+
+        <h2>Analisi dei Requisiti</h2>
+        <p>
+            L'analisi dei requisiti è stata svolta durante lo Sprint 0, producendo un approfondito
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html">documento di analisi dei requisiti</a>.
+        </p>
+
+        <h2>Analisi del Problema</h2>
+        <p>
+
+        </p>
+
+        </p>
+
+        <h2>Test Plans</h2>
+        <p>
+
+        </p>
+
+        <h2>Architettura</h2>
+        <p>
+
+        </p>
+        <img src="img/arch2_gen.png" width="100%">
+        <img src="img/arch2_devices_gen.png" width="60%">
+
+        <h2 id="deployment">Deployment</h2>
+        <p>
+            Uno dei pregi del linguaggio di modellazione QAK è la possibilità di creare un modello eseguibile del
+            sistema. Al termine di questo sprint è stato infatti realizzato tale modello eseguibile, di cui è
+            possibile effettuare il deployment seguendo questi passi:
+        </p>
+        <ol>
+            <li>Creare e avviare i container di supporto per l'ambiente virtuale del robot con docker compose,
+                definiti nel file
+                <a href="https://github.com/anatali/issLab2026/blob/main/robotsmart26/yamls/robotsmart26.yaml">robotsmart26.yaml</a>
+                (le istruzioni per il deployment si trovano in fondo al file).</li>
+            <li>Collegarsi alla pagina web dell'ambiente virtuale, all'indirizzo
+                <a href="http://localhost:8085/">http://localhost:8085/</a>.</li>
+            <li>Importare il progetto sprint2 in Eclipse come progetto Gradle.</li>
+            <li>Importare il progetto devices in Eclipse come progetto Gradle.</li>
+            <li>Lanciare il sistema tramite la Gradle Task run, oppure con il comando <code>gradlew run</code>.</li>
+        </ol>
+        <p>
+            Riguardo il sensore, il led e il pushbutton di test è necessario:
+            <ol>
+                <li>Avviare la task gradle fatJar con il comando <code>gradlew fatJar</code> per generare il jar eseguibile del software del contesto <tt>ctx_sensor</tt></li>
+                <li>Spostare il jar <code>ISS_26_Cargoservice\sprint2\devices\build\libs\devices-1.0-fat.jar</code> in qualsiasi posizione del Raspberry Pi</li>
+                <li>Spostare il middleware python <code>ISS_26_Cargoservice\sprint2\devices\python\sensor.py</code> in qualsiasi posizione del Raspberry Pi</li>
+                <li>Connettere l'hardware nel seguente modo:
+                    <ul>
+                        Sensore a ultrasuoni HC-SR04:
+                        <li>Trigger: GPIO 23</li>
+                        <li>Echo: GPIO 24</li>
+                        LED:
+                        <li>Anodo: GPIO 27</li>
+                        Pulsante:
+                        <li>GPIO 17</li>
+                    </ul>
+                </li>
+                <li>Lanciare il middleware python con <code>python3 sensor.py</code></li>
+                <li>Avviare il sistema con <code>java -jar devices-1.0-fat.jar</code></li>
+            </ol>
+            Il sistema è stato testato su Raspberry Pi 3B+. Il nome e numero dei GPIO può variare a seconda della versione. 
+        </p>
+
+        <h2>Considerazioni Sprint 3 e Conclusioni</h2>
+        <p>
+        
+        </p>
+
+    </div>
+
+
+    <div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px; font-size: large;">
+        By Andrea Gazzola <img src="img/fotoA.jpg" width="100px"> and Francesco Roffia <img src="img/fotoF.png" width="100px"> <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">
+        GIT repo: https://github.com/FRoffia/ISS_26_Cargoservice</a>
+    </div>
+</body>
+</html>
