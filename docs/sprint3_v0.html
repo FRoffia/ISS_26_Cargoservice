@@ -48,6 +48,89 @@
 
         <h2>Analisi del Problema</h2>
         <p>
+            <h3>webgui</h3>
+            Per realizzare una webgui che potesse soddisfare i requisiti ed implementare tutte le funzionalità richieste abbiamo
+            deciso di utilizzare nodeJS, un framework per la creazione di web server. 
+            <br><br>
+            
+            A noi servirà una sola pagina, scritta in html e javascript, contenente:<br><br>
+            <ol>
+                <li>Display per messaggi testuali (risposte a richieste di carico)</li>
+                <div class="remark">
+                    ANALISI: utilizzeremo un semplice div, a cui andremo ad appendere i messaggi ricevuti tramite javascript.
+                </div>
+                <li>Un bottone, utilizzato per inviare le richieste di carico</li>
+                <div class="remark">
+                    ANALISI: utilizziamo anche qui un div, a cui viene aggiunto tramite javascript un listener per l'evento click,
+                    che viene quindi catturato e gestito con chiamata a procedura.
+                </div>
+                <li>Una sezione testuale che verrà aggiornata con lo stato attuale di funzionamento</li>
+                <div class="remark">
+                    ANALISI: similmente al display, anche qui usiamo un div, stavolta però invece di appendere il contenuto lo andiamo
+                    a sovrascrivere con i nuovi aggiornamenti.
+                </div>
+                <li>Una sezione che rappresenti lo stato di occupazione degli slot</li>
+                <div class="remark">
+                    ANALISI: utilizziamo 4 div arricchiti di uno stile css adeguato che diventano verdi o rossi a seconda degli aggiornamenti
+                    sull'occupazione degli slots.
+                    
+                </div>
+            </ol>
+            <br>
+            Abbiamo quindi realizzato la pagina web come elemento a se stante, in grado di rappresentare quanto descritto dai 
+            requisiti, e in grado di catturare le interazioni con l'utente come la pressione del pushbutton. E' poi sorto il
+            problema di dover "tradurre" gli eventi e le chiamate a procedure javascript in messaggi per servizi. Similmente
+            a come abbiamo fatto per il sensore, abbiamo deciso di affidarci a MQTT.
+
+            <br><br>
+            I topic MQTT di cui abbiamo bisogno sono quindi i seguenti:
+            <br><br>
+            <ol>
+                <li><em>pushbutton</em>: su cui verranno pubblicati da javascript gli eventi di pressione del pulsante html.</li>
+                <li><em>display</em>: un canale a cui il web server si iscrive per ricevere aggiornamenti dall'applicazione. Questo
+                    è un canale pensato per ricevere messaggi generici: sia aggiornamenti dello stato che risposte a 
+                    richieste di carico. Sarà compito del server interpretare i messaggi ricevuti e aggiornare la vista di conseguenza.
+                </li>
+            </ol>
+
+            <br>
+            In ottica di separazione delle responsabilità, pensiamo anche che sia necessario creare dei servizi che implementino la
+            logica di business legata al funzionamento di questi componenti, in modo da non sovraccaricare cargoservice. Pensiamo 
+            perciò di creare due attori aggiuntivi nel contesto della webgui: <bc>pushbuttonservice</bc> e <bc>displayservice</bc>.
+
+
+
+            <h3>pushbuttonservice</h3>
+            Oltre a quanto descritto nella sezione webgui, è necessario avere un atttore che implementi la logica di business legata all'invio della richiesta
+            di carico e della ricezione della risposta (accepted, rejected, retry later). Per questo creiamo <bc>pushbuttonservice</bc>.
+            Questo attore si iscrive al topic MQTT <tt>pushbutton</tt>, intercetta gli eventi di pressione del bottone, e invia una
+            Request <tt>load_request</tt> a cargoservice, innescando la procedura di core business implementata nello sprint 1 LINK.
+            
+            <br><br>
+            In seguito, si mette in attesa di Reply, che può essere: <tt>load_accepted</tt>, <tt>load_rejected</tt> e <tt>retrylater</tt>. 
+            In base alla risposta ricevuta, pubblica su topic <tt>display</tt> un messaggio appropriato, informando il web server
+            di aggiornare la vista.
+
+
+
+            <h3>displayservice</h3>
+
+
+
+            <h3>holdstatusservice</h3>
+            Un'altra cosa che ci siamo chiesti a questo punto è come si potesse gestire l'aggiornamento di stato di occupazione
+            degli solts. La soluzione più semplice a cui abbiamo pensato è stata quella di implementare aggiornamenti sincroni comandati
+            da cargoservice in punti specifici dello svolgimento delle richieste di carico, come ad esempio a richiesta accettata 
+            o a spostamento del carico completato. Abbiamo pensato però che fosse poco preciso, non responsivo a errori durante
+            la procedura, e che andasse a "sporcare" il core business dell'applicazione con passaggi superflui.<br><br>
+            Per questo abbiamo pensato di creare l'attore <bc>holdstatusservice</bc> all'interno del contesto della web gui, che ha
+            come unica responsabilità quella di richiedere aggiornamenti sullo stato della hold.<br><br>
+            Il modo in cui abbiamo implementato questa cosa è stato creare un timer in javascript ????????? che ogni ??secondi
+            pubblica su topic <em>holdstatusrequest</em> un messaggio. Questo viene intercettato dall'attore, che invia a 
+            <bc>holdservice</bc> una Request <tt>get_hold_status</tt>. <bc>holdservice</bc> risponde alla richiesta con <tt>hold_status(S)</tt>,
+            S è lo stato aggiornato, formato da caratteri binari rappresentanti lo stato degli hold (1 occupato, 0 libero).<br><br>
+            Questo aggiornamento viene poi pubblicato su topic <em>display</em> come tutti gli altri messaggi, e viene interpretato
+            da web server. 
 
         </p>
 
