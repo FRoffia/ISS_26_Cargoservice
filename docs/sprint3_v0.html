@@ -50,10 +50,10 @@
         <p>
             <h3>webgui</h3>
             Per realizzare una webgui che potesse soddisfare i requisiti ed implementare tutte le funzionalità richieste abbiamo
-            deciso di utilizzare nodeJS, un framework per la creazione di web server. 
+            deciso di utilizzare nodeJS LINK, un framework per la creazione di web server LINK. 
             <br><br>
             
-            A noi servirà una sola pagina, scritta in html e javascript, contenente:<br><br>
+            A noi servirà una sola pagina, scritta in html LINK e javascript LINK, contenente:<br><br>
             <ol>
                 <li>Display per messaggi testuali (risposte a richieste di carico)</li>
                 <div class="remark">
@@ -80,7 +80,7 @@
             Abbiamo quindi realizzato la pagina web come elemento a se stante, in grado di rappresentare quanto descritto dai 
             requisiti, e in grado di catturare le interazioni con l'utente come la pressione del pushbutton. E' poi sorto il
             problema di dover "tradurre" gli eventi e le chiamate a procedure javascript in messaggi per servizi. Similmente
-            a come abbiamo fatto per il sensore, abbiamo deciso di affidarci a MQTT.
+            a come abbiamo fatto per il sensore, abbiamo deciso di affidarci a MQTT LINK.
 
             <br><br>
             I topic MQTT di cui abbiamo bisogno sono quindi i seguenti:
@@ -114,6 +114,21 @@
 
 
             <h3>displayservice</h3>
+            Abbiamo pensato questo attore con l'idea di avere un unico punto di accesso al publish mqtt, ovvero quello che abbiamo
+            fatto è avere un evento <tt>display(MSG)</tt> descritto in QAK, intercettato da questo attore, che poi inoltra su
+            mqtt pubblicando su topic <em>display</em>. Come detto anche in precedenza, a questo topic è iscritto il web server,
+            che riceve i messaggi e aggiorna la vista.
+            <br><br>
+
+            I messaggi che inviamo su topic display sono i seguenti:
+            <ul>
+                <li>Aggiornamento stato slots: una stringa di caratteri binari rappresentati stato occupazione slot (generata da holdservice)</li>
+                <li>Risposta richiesta di carico: stringhe ???? non ho capito cosa mettiamo</li>
+                <li>Informazioni su stato funzionamento del sistema: stringhe <tt>DISENGAGED</tt>, <tt>ENGAGED</tt>, 
+                    <tt>OUT_OF_SERVICE</tt>, evento di aggiornamento emesso direttamente da cargoservice al passaggio di stato
+                    durante l'esecuzione
+                </li>
+            </ul>
 
 
 

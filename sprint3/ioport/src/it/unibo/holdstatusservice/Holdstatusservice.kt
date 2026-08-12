@@ -68,8 +68,7 @@ class Holdstatusservice ( name: String, scope: CoroutineScope, isconfined: Boole
 						                        currentMsg.msgContent()) ) { //set msgArgList
 								 Status = payloadArg(0)  
 						}
-						//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Status)" ) 
-						publish(MsgUtil.buildEvent(name,"display_web","display_web($Status)").toString(), "display" )   
+						emitlocal("display", "display($Status)" ) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

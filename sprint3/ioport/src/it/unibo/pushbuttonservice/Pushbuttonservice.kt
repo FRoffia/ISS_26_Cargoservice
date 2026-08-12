@@ -74,8 +74,7 @@ class Pushbuttonservice ( name: String, scope: CoroutineScope, isconfined: Boole
 						                        currentMsg.msgContent()) ) { //set msgArgList
 								 Msg = payloadArg(0) 
 								CommUtils.outgreen("display | message: $Msg")
-								//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Msg)" ) 
-								publish(MsgUtil.buildEvent(name,"display_web","display_web($Msg)").toString(), "display" )   
+								emitlocal("display", "display($Msg)" ) 
 						}
 						//genTimer( actor, state )
 					}
@@ -90,8 +89,7 @@ class Pushbuttonservice ( name: String, scope: CoroutineScope, isconfined: Boole
 						                        currentMsg.msgContent()) ) { //set msgArgList
 								 Msg = payloadArg(0) 
 								CommUtils.outgreen("display | message: $Msg")
-								//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Msg)" ) 
-								publish(MsgUtil.buildEvent(name,"display_web","display_web($Msg)").toString(), "display" )   
+								emitlocal("display", "display($Msg)" ) 
 						}
 						//genTimer( actor, state )
 					}
@@ -106,8 +104,7 @@ class Pushbuttonservice ( name: String, scope: CoroutineScope, isconfined: Boole
 						                        currentMsg.msgContent()) ) { //set msgArgList
 								 Msg = payloadArg(0) 
 								CommUtils.outgreen("display | message: $Msg")
-								//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Msg)" ) 
-								publish(MsgUtil.buildEvent(name,"display_web","display_web($Msg)").toString(), "display" )   
+								emitlocal("display", "display($Msg)" ) 
 						}
 						//genTimer( actor, state )
 					}

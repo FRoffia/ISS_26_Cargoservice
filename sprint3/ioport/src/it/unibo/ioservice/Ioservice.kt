@@ -29,7 +29,8 @@ class Ioservice ( name: String, scope: CoroutineScope, isconfined: Boolean=false
 	override fun getBody() : (ActorBasicFsm.() -> Unit){
 		//val interruptedStateTransitions = mutableListOf<Transition>()
 		//IF actor.withobj !== null val actor.withobj.name� = actor.withobj.method�ENDIF
-		 var Msg = ""  
+		
+				var Message = ""
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -50,27 +51,26 @@ class Ioservice ( name: String, scope: CoroutineScope, isconfined: Boolean=false
 					sysaction { //it:State
 					}	 	 
 					 transition(edgeName="t00",targetState="send_push",cond=whenEvent("push"))
-					transition(edgeName="t01",targetState="accept",cond=whenReply("load_accepted"))
-					transition(edgeName="t02",targetState="reject",cond=whenReply("load_rejected"))
-					transition(edgeName="t03",targetState="retry",cond=whenReply("retrylater"))
 				}	 
 				state("send_push") { //this:State
 					action { //it:State
 						request("load_request", "load_request(X)" ,"cargoservice" )  
+						Message = "button pressed, load request sent" 
+						emitlocal("display", "display(Message)" ) 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
 					sysaction { //it:State
 					}	 	 
-					 transition(edgeName="t04",targetState="send_push",cond=whenEvent("push"))
-					transition(edgeName="t05",targetState="accept",cond=whenReply("load_accepted"))
-					transition(edgeName="t06",targetState="reject",cond=whenReply("load_rejected"))
-					transition(edgeName="t07",targetState="retry",cond=whenReply("retrylater"))
+					 transition(edgeName="t01",targetState="accept",cond=whenReply("load_accepted"))
+					transition(edgeName="t02",targetState="reject",cond=whenReply("load_rejected"))
+					transition(edgeName="t03",targetState="retry",cond=whenReply("retrylater"))
 				}	 
 				state("accept") { //this:State
 					action { //it:State
-						 Msg = "load accepted" 
-						emitlocal("display", "display($Msg)" ) 
+						 val Message = "load accepted" 
+						//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Message)" ) 
+						publish(MsgUtil.buildEvent(name,"display_web","display_web($Message)").toString(), "display" )   
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -80,8 +80,9 @@ class Ioservice ( name: String, scope: CoroutineScope, isconfined: Boolean=false
 				}	 
 				state("reject") { //this:State
 					action { //it:State
-						 Msg = "load rejected" 
-						emitlocal("display", "display($Msg)" ) 
+						 val Message = "load rejected" 
+						//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Message)" ) 
+						publish(MsgUtil.buildEvent(name,"display_web","display_web($Message)").toString(), "display" )   
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
@@ -91,8 +92,9 @@ class Ioservice ( name: String, scope: CoroutineScope, isconfined: Boolean=false
 				}	 
 				state("retry") { //this:State
 					action { //it:State
-						 Msg = "retry later" 
-						emitlocal("display", "display($Msg)" ) 
+						 val Message = "retry later" 
+						//val m = MsgUtil.buildEvent(name, "display_web", "display_web($Message)" ) 
+						publish(MsgUtil.buildEvent(name,"display_web","display_web($Message)").toString(), "display" )   
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002
