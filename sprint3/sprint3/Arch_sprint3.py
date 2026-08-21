@@ -36,8 +36,10 @@ with Diagram('sprint3Arch', show=False, outformat='png', graph_attr=graphattr) a
           ledservice=Custom('ledservice(ext)','./qakicons/externalQActor.png')
      with Cluster('ctx_ioport', graph_attr=nodeattr):
           displayservice=Custom('displayservice(ext)','./qakicons/externalQActor.png')
-     cargoservice >> Edge( label='display', **eventedgeattr, decorate='true', fontcolor='red') >> sys
+          stateservice=Custom('stateservice(ext)','./qakicons/externalQActor.png')
+     cargoservice >> Edge( label='system_state', **eventedgeattr, decorate='true', fontcolor='red') >> sys
      sys >> Edge( label='container_in', **evattr, decorate='true', fontcolor='darkgreen') >> cargoservice
+     cargoservice >> Edge( label='display', **eventedgeattr, decorate='true', fontcolor='red') >> sys
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<is_cargo_present<font color="darkgreen"> cargo_present cargo_absent</font> &nbsp; >',  fontcolor='magenta') >> sensorservice
      cargoservice >> Edge(color='magenta', style='solid', decorate='true', label='<reserve_slot<font color="darkgreen"> reserve_ok reserve_fail</font> &nbsp; >',  fontcolor='magenta') >> holdservice
      cargorobot >> Edge(color='magenta', style='solid', decorate='true', label='<moverobot<font color="darkgreen"> moverobotdone moverobotfailed</font> &nbsp; getrobotstate<font color="darkgreen"> robotstate</font> &nbsp; >',  fontcolor='magenta') >> robotsmart

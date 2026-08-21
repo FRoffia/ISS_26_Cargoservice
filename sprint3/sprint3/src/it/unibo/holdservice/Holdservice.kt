@@ -74,8 +74,8 @@ class Holdservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fal
 						if( checkMsgContent( Term.createTerm("free_slot(SLOT)"), Term.createTerm("free_slot(SLOT)"), 
 						                        currentMsg.msgContent()) ) { //set msgArgList
 								 
-									            val slotId = payloadArg(0).substringAfter("slot").toInt()
-									            hold.freeSlot(slotId)
+								        		val slotId = payloadArg(0).substringAfter("slot").toInt()
+								            	hold.freeSlot(slotId)
 						}
 						//genTimer( actor, state )
 					}

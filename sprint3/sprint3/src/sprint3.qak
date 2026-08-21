@@ -53,8 +53,10 @@ Dispatch led_off   : led_off(X)
 //autodispatch
 Dispatch already_home     : already_home(X)   
 
-//invio messaggio al display di ioport
-Event display : display(MESSAGE)    
+//invio messaggio testuale al display di ioport
+Event display      : display(MESSAGE)
+//invio aggiornamento stato sistema a ioport
+Event system_state : system_state(STATE)
 
 
 Context  ctx_cargoservice ip [host="localhost" port= 8010]
@@ -66,6 +68,7 @@ ExternalQActor robotsmart 	  context ctxrobotsmart
 ExternalQActor sensorservice  context ctx_sensor
 ExternalQActor ledservice     context ctx_sensor
 ExternalQActor displayservice context ctx_ioport
+ExternalQActor stateservice   context ctx_ioport
 
 //attore principale del core business del sistema.
 QActor cargoservice context ctx_cargoservice {
@@ -75,6 +78,7 @@ QActor cargoservice context ctx_cargoservice {
 		var Delay = 30000
 		var DelayLong = 30000L
 		var Msg = ""
+		var CargoInTransit = false
 	#] 
 	
 	//dai requisiti, gli stati del sistema sono: ENGAGED, DISENGAGED, OUTOFSERVICE
@@ -87,7 +91,7 @@ QActor cargoservice context ctx_cargoservice {
 
     State disengaged {
     	[# Msg = "DISENGAGED"#]
-    	emit display : display($Msg)
+    	emit system_state : system_state($Msg)
 		println("cargoservice | DISENGAGED: waiting for cargo load request") color green
 		
 		forward ledservice -m led_off : led_off(X)
@@ -167,12 +171,16 @@ QActor cargoservice context ctx_cargoservice {
 
 	//inviamo la richiesta di carico al robot con lo slotID
     State engaged {
-    	[# Msg = "ENGAGED" #]
-    	emit display : display($Msg)
+    	[#  
+    		Msg = "ENGAGED"
+    		CargoInTransit = true
+    	#]
+    	emit system_state : system_state($Msg)
     	println("cargoservice | System engaged, load operation is being handled by cargorobot") color blue
     	
     	request cargorobot -m handle_cargo_load : handle_cargo_load($Cur_reserved_slot)
     	forward ledservice -m led_blink : led_blink(X)
+    	
     }
     Transition t0
     	whenReply cargo_load_success -> checkloadqueue
@@ -188,8 +196,12 @@ QActor cargoservice context ctx_cargoservice {
 	//gestisco out of service
     State outOfService {
     	[# Msg = "OUT_OF_SERVICE" #]
-		emit display : display($Msg)
+		emit system_state : system_state($Msg)
     	println("cargoservice | sensor error: OUT OF SERVICE!") color red
+    	
+    	[# if(!CargoInTransit){#]
+    		forward holdservice -m free_slot : free_slot($Cur_reserved_slot)
+    	[#}#]
     }
     Transition t0
      whenRequest load_request -> reply_oos
@@ -437,10 +449,9 @@ QActor holdservice context ctx_cargoservice{
 	State free_slot_state {
 	    onMsg( free_slot : free_slot(SLOT) ) {
 	        [# 
-	            val slotId = payloadArg(0).substringAfter("slot").toInt()
-	            hold.freeSlot(slotId)
+        		val slotId = payloadArg(0).substringAfter("slot").toInt()
+            	hold.freeSlot(slotId)
 	        #]
-	        
 		    }
 		}
 	Goto s0

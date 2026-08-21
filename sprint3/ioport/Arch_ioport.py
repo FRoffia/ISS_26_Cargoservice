@@ -32,9 +32,11 @@ with Diagram('ioportArch', show=False, outformat='png', graph_attr=graphattr) as
           pushbuttonservice=Custom('pushbuttonservice','./qakicons/symActorWithobjSmall.png')
           displayservice=Custom('displayservice','./qakicons/symActorWithobjSmall.png')
           holdstatusservice=Custom('holdstatusservice','./qakicons/symActorWithobjSmall.png')
+          stateservice=Custom('stateservice','./qakicons/symActorWithobjSmall.png')
      sys >> Edge( label='push', **evattr, decorate='true', fontcolor='darkgreen') >> pushbuttonservice
      sys >> Edge( label='display', **evattr, decorate='true', fontcolor='darkgreen') >> displayservice
      sys >> Edge( label='hold_status_request', **evattr, decorate='true', fontcolor='darkgreen') >> holdstatusservice
+     sys >> Edge( label='system_state', **evattr, decorate='true', fontcolor='darkgreen') >> stateservice
      pushbuttonservice >> Edge(color='magenta', style='solid', decorate='true', label='<load_request<font color="darkgreen"> load_accepted load_rejected retrylater</font> &nbsp; >',  fontcolor='magenta') >> cargoservice
      holdstatusservice >> Edge(color='magenta', style='solid', decorate='true', label='<get_hold_status<font color="darkgreen"> hold_status</font> &nbsp; >',  fontcolor='magenta') >> holdservice
 diag

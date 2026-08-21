@@ -7,6 +7,7 @@ reply( load_accepted, load_accepted(SLOT) ).  %%for load_request
 reply( load_rejected, load_rejected(X) ).  %%for load_request
 reply( retrylater, retrylater(X) ).  %%for load_request
 event( display, display(MESSAGE) ).
+event( system_state, system_state(STATE) ).
 event( display_web, display_web(MESSAGE) ).
 request( get_hold_status, get_hold_status(X) ).
 reply( hold_status, hold_status(STATUS) ).  %%for get_hold_status
@@ -22,3 +23,5 @@ context(ctx_ioport, "localhost",  "TCP", "8040").
  static(displayservice).
   qactor( holdstatusservice, ctx_ioport, "it.unibo.holdstatusservice.Holdstatusservice").
  static(holdstatusservice).
+  qactor( stateservice, ctx_ioport, "it.unibo.stateservice.Stateservice").
+ static(stateservice).

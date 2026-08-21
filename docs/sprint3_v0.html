@@ -16,29 +16,31 @@
         <h2>Punto di partenza</h2>
         <p>
             Nello <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint2_v0.html">Sprint 2</a>, grazie
-            all'analisi del problema e alla relativa implementazione, abbiamo realizzato la componente hardware richiesta, ovvero
-            il <bc>sensor</bc> e il <bc>led</bc>, che comunicano attraverso messaggi con cargoservice. Per esigenze di testing,
-            anche il pushbutton era implementato a livello hardware. Di seguito l'architettura prodotta alla fine dello Sprint 2, includendo entrambi
-            i contesti sviluppati ctx_cargoservice e ctx_sensor. 
-        <!-- INSERIRE IMMAGINI ARCH-->
+            all'analisi del problema e alla relativa implementazione, abbiamo realizzato le componenti hardware
+            richieste, ovvero il <bc>sensor</bc> e il <bc>led</bc>, che comunicano attraverso messaggi con
+            <bc>cargoservice</bc>. Per esigenze di testing, anche il <bc>pushbutton</bc> era implementato a livello
+            hardware, nel contesto <tt>ctx_sensor</tt>. Di seguito l'architettura prodotta alla fine dello Sprint 2,
+            includendo entrambi i contesti sviluppati <tt>ctx_cargoservice</tt> e <tt>ctx_sensor</tt>.
         </p>
+        <img src="img/arch2_gen.png" width="60%">
+        <img src="img/arch2_devices_gen.png" width="60%">
 
         <h2>Goal</h2>
         <p>
             In questo sprint svolgiamo l'analisi del problema e l'implementazione dei componenti
-            <bc>pushbutton</bc> e <bc>display</bc>, che, come precisato dal committente, sono rappresentati in una interfaccia web (che chiameremo <bc>WebGUI</bc>),
-            su un nodo separato sia dal nodo che ospita <bc>cargoservice</bc>, dal nodo di
-            bordo del <bc>cargorobot</bc> e dal Raspberry Pi che ospita<bc>sensorservice</bc>. 
-            In particolare, al termine dello Sprint 3 il sistema dovrà essere in grado di mostrare sulla WebGUI:
-            <ul>
-                <li>Il pushbutton per inviare la richiesta di carico</li>
-                <li>Lo stato del sistema, ossia se si trova in stato ENGAGED, DISENGAGED, OUT OF SERVICE</li>
-                <li>La risposta alla richiesta di carico</li>
-                <li>L'occupazione dei 4 Slot (libero o occupato)</li>
-            </ul>
-
+            <bc>pushbutton</bc> e <bc>display</bc>, che, come precisato dal committente, sono rappresentati in
+            un'interfaccia web (che chiameremo <bc>WebGUI</bc>), su un nodo separato sia dal nodo che ospita
+            <bc>cargoservice</bc>, sia dal nodo di bordo del <bc>cargorobot</bc>, sia dal Raspberry Pi che ospita
+            <bc>sensorservice</bc>. In particolare, al termine dello Sprint 3 il sistema dovrà essere in grado di
+            mostrare sulla WebGUI:
         </p>
-
+        <ul>
+            <li>il pushbutton per inviare la richiesta di carico;</li>
+            <li>lo stato del sistema, ossia se si trova nello stato <tt>ENGAGED</tt>, <tt>DISENGAGED</tt> o
+                <tt>OUT_OF_SERVICE</tt>;</li>
+            <li>la risposta alla richiesta di carico;</li>
+            <li>l'occupazione dei 4 slot (libero o occupato).</li>
+        </ul>
 
         <h2>Analisi dei Requisiti</h2>
         <p>
@@ -47,169 +49,165 @@
         </p>
 
         <h2>Analisi del Problema</h2>
+
+        <h3>WebGUI</h3>
         <p>
-            <h3>webgui</h3>
-            Per realizzare una webgui che potesse soddisfare i requisiti ed implementare tutte le funzionalità richieste abbiamo
-            deciso di utilizzare nodeJS LINK, un framework per la creazione di web server LINK. 
-            <br><br>
-            
-            A noi servirà una sola pagina, scritta in html LINK e javascript LINK, contenente:<br><br>
-            <ol>
-                <li>Display per messaggi testuali (risposte a richieste di carico)</li>
-                <div class="remark">
-                    ANALISI: utilizzeremo un semplice div, a cui andremo ad appendere i messaggi ricevuti tramite javascript.
-                </div>
-                <li>Un bottone, utilizzato per inviare le richieste di carico</li>
-                <div class="remark">
-                    ANALISI: utilizziamo anche qui un div, a cui viene aggiunto tramite javascript un listener per l'evento click,
-                    che viene quindi catturato e gestito con chiamata a procedura.
-                </div>
-                <li>Una sezione testuale che verrà aggiornata con lo stato attuale di funzionamento</li>
-                <div class="remark">
-                    ANALISI: similmente al display, anche qui usiamo un div, stavolta però invece di appendere il contenuto lo andiamo
-                    a sovrascrivere con i nuovi aggiornamenti.
-                </div>
-                <li>Una sezione che rappresenti lo stato di occupazione degli slot</li>
-                <div class="remark">
-                    ANALISI: utilizziamo 4 div arricchiti di uno stile css adeguato che diventano verdi o rossi a seconda degli aggiornamenti
-                    sull'occupazione degli slots.
-                    
-                </div>
-            </ol>
-            <br>
-            Abbiamo quindi realizzato la pagina web come elemento a se stante, in grado di rappresentare quanto descritto dai 
-            requisiti, e in grado di catturare le interazioni con l'utente come la pressione del pushbutton. E' poi sorto il
-            problema di dover "tradurre" gli eventi e le chiamate a procedure javascript in messaggi per servizi. Similmente
-            a come abbiamo fatto per il sensore, abbiamo deciso di affidarci a MQTT LINK.
-
-            <br><br>
-            I topic MQTT di cui abbiamo bisogno sono quindi i seguenti:
-            <br><br>
-            <ol>
-                <li><em>pushbutton</em>: su cui verranno pubblicati da javascript gli eventi di pressione del pulsante html.</li>
-                <li><em>display</em>: un canale a cui il web server si iscrive per ricevere aggiornamenti dall'applicazione. Questo
-                    è un canale pensato per ricevere messaggi generici: sia aggiornamenti dello stato che risposte a 
-                    richieste di carico. Sarà compito del server interpretare i messaggi ricevuti e aggiornare la vista di conseguenza.
-                </li>
-            </ol>
-
-            <br>
-            In ottica di separazione delle responsabilità, pensiamo anche che sia necessario creare dei servizi che implementino la
-            logica di business legata al funzionamento di questi componenti, in modo da non sovraccaricare cargoservice. Pensiamo 
-            perciò di creare due attori aggiuntivi nel contesto della webgui: <bc>pushbuttonservice</bc> e <bc>displayservice</bc>.
-
-
-
-            <h3>pushbuttonservice</h3>
-            Oltre a quanto descritto nella sezione webgui, è necessario avere un atttore che implementi la logica di business legata all'invio della richiesta
-            di carico e della ricezione della risposta (accepted, rejected, retry later). Per questo creiamo <bc>pushbuttonservice</bc>.
-            Questo attore si iscrive al topic MQTT <tt>pushbutton</tt>, intercetta gli eventi di pressione del bottone, e invia una
-            Request <tt>load_request</tt> a cargoservice, innescando la procedura di core business implementata nello sprint 1 LINK.
-            
-            <br><br>
-            In seguito, si mette in attesa di Reply, che può essere: <tt>load_accepted</tt>, <tt>load_rejected</tt> e <tt>retrylater</tt>. 
-            In base alla risposta ricevuta, pubblica su topic <tt>display</tt> un messaggio appropriato, informando il web server
-            di aggiornare la vista.
-
-
-
-            <h3>displayservice</h3>
-            Abbiamo pensato questo attore con l'idea di avere un unico punto di accesso al publish mqtt, ovvero quello che abbiamo
-            fatto è avere un evento <tt>display(MSG)</tt> descritto in QAK, intercettato da questo attore, che poi inoltra su
-            mqtt pubblicando su topic <em>display</em>. Come detto anche in precedenza, a questo topic è iscritto il web server,
-            che riceve i messaggi e aggiorna la vista.
-            <br><br>
-
-            I messaggi che inviamo su topic display sono i seguenti:
-            <ul>
-                <li>Aggiornamento stato slots: una stringa di caratteri binari rappresentati stato occupazione slot (generata da holdservice)</li>
-                <li>Risposta richiesta di carico: stringhe ???? non ho capito cosa mettiamo</li>
-                <li>Informazioni su stato funzionamento del sistema: stringhe <tt>DISENGAGED</tt>, <tt>ENGAGED</tt>, 
-                    <tt>OUT_OF_SERVICE</tt>, evento di aggiornamento emesso direttamente da cargoservice al passaggio di stato
-                    durante l'esecuzione
-                </li>
-            </ul>
-
-
-
-            <h3>holdstatusservice</h3>
-            Un'altra cosa che ci siamo chiesti a questo punto è come si potesse gestire l'aggiornamento di stato di occupazione
-            degli solts. La soluzione più semplice a cui abbiamo pensato è stata quella di implementare aggiornamenti sincroni comandati
-            da cargoservice in punti specifici dello svolgimento delle richieste di carico, come ad esempio a richiesta accettata 
-            o a spostamento del carico completato. Abbiamo pensato però che fosse poco preciso, non responsivo a errori durante
-            la procedura, e che andasse a "sporcare" il core business dell'applicazione con passaggi superflui.<br><br>
-            Per questo abbiamo pensato di creare l'attore <bc>holdstatusservice</bc> all'interno del contesto della web gui, che ha
-            come unica responsabilità quella di richiedere aggiornamenti sullo stato della hold.<br><br>
-            Il modo in cui abbiamo implementato questa cosa è stato creare un timer in javascript ????????? che ogni ??secondi
-            pubblica su topic <em>holdstatusrequest</em> un messaggio. Questo viene intercettato dall'attore, che invia a 
-            <bc>holdservice</bc> una Request <tt>get_hold_status</tt>. <bc>holdservice</bc> risponde alla richiesta con <tt>hold_status(S)</tt>,
-            S è lo stato aggiornato, formato da caratteri binari rappresentanti lo stato degli hold (1 occupato, 0 libero).<br><br>
-            Questo aggiornamento viene poi pubblicato su topic <em>display</em> come tutti gli altri messaggi, e viene interpretato
-            da web server. 
-
+            Per realizzare una WebGUI in grado di soddisfare i requisiti, è necessario scegliere un framework che ci permetta di
+            comunicare agevolmente con il resto del nostro sistema. Per tenere al minimo il <a href="https://en.wikipedia.org/wiki/Boilerplate_code">boilerplate</a>, potremmo scegliere
+            di usare puro HTML con un semplice script JavaScript, ma questo richiederebbe un'implementazione lunga e complessa della comunicazione
+            via MQTT. Perciò, scegliamo di usare <a href="https://nodejs.org/">Node.js</a> con il framework
+            <a href="https://expressjs.com/">Express</a> per la creazione del web server, dato che offre una libreria MQTT matura e pronta all'uso,
+            oltre che per la semplicità nel servire la pagina HTML ai client.<br><br>
+            Dai requisiti abbiamo individuato quattro elementi che saranno presenti nella pagina web:
         </p>
-
-        </p>
-
-        <h2>Test Plans</h2>
+        <ol>
+            <li>Un bottone utilizzato per inviare le richieste di carico.</li>
+            <div class="remark">
+                ANALISI: un elemento HTML a cui viene aggiunto, tramite JavaScript, un listener
+                per l'evento <tt>click</tt>. Alla pressione, il client eseguirà una chiamata HTTP
+                al web server, che a sua volta pubblica sul topic MQTT <em>pushbutton</em> il messaggio di
+                pressione verso <bc>pushbuttonservice</bc>.
+            </div>
+            <li>Un display per i messaggi di risposta alle richieste di carico.</li>
+            <div class="remark">
+                ANALISI: un elemento HTML aggiornato via JavaScript al ricevimento di eventi SSE
+                (Server-Sent Events) dal web server. Il testo mostrato deriva dai payload
+                emessi dal resto del sistema con eventi <tt>display</tt>. Dato che i payload dei messaggi QAK possono contenere 
+                solo stringhe atomiche, inviamo dei "codici" che verranno tradotti poi in un testo esteso da JavaScript, come ad esempio:
+                il nome dello slot prenotato (<tt>slot1</tt>…<tt>slot4</tt>) per il carico accettato, <tt>no_slots_avail</tt> per la hold
+                piena, <tt>already_occupied</tt> per la IOPort già occupata, <tt>out_of_service</tt> per il
+                sistema fuori servizio, <tt>not_arrived</tt> per il timeout di consegna del cargo.
+            </div>
+            <li>Un display testuale per lo stato attuale del sistema.</li>
+            <div class="remark">
+                ANALISI: similmente al display delle risposte, anche qui utilizziamo un elemento HTML aggiornato
+                via SSE. Gli aggiornamenti di stato arriveranno su un topic MQTT dedicato (<em>state</em>),
+                separato da quello dei messaggi testuali: in questo modo il web server non dovrà ispezionare
+                il contenuto per capire cosa fare, ma si limiterà a instradare per topic.
+            </div>
+            <li>Una sezione che rappresenti lo stato di occupazione degli slot.</li>
+            <div class="remark">
+                ANALISI: utilizziamo 4 elementi HTML, uno per slot, la cui classe CSS viene aggiornata
+                dinamicamente in base allo stato ricevuto. La stringa di stato è una sequenza di quattro caratteri
+                binari (ad esempio <tt>"0110"</tt>), dove <tt>1</tt> indica lo slot occupato e <tt>0</tt> libero.
+            </div>
+        </ol>
         <p>
-
+            I topic MQTT di cui abbiamo bisogno sono i seguenti:
         </p>
+        <p>
+            Dal punto di vista della comunicazione MQTT tra sistema QAK e web server, abbiamo bisogno di
+            differenziare i tre tipi di informazione in uscita dal sistema. Potremmo usare un canale unico
+            e classificare i messaggi a runtime, ma questo introdurrebbe logica fragile (euristiche sul
+            contenuto) nel web server. Preferiamo invece usare un topic dedicato per ciascun tipo: così il
+            server instrada per topic, senza ispezionare il payload.
+        </p>
+        <ol>
+            <li><em>pushbutton</em>: web → QAK. Il web server pubblica qui gli eventi di pressione del pulsante.</li>
+            <li><em>holdstatusrequest</em>: web → QAK. Il web server pubblica qui le richieste di aggiornamento
+                stato slot, intercettate da <bc>holdstatusservice</bc>.</li>
+            <li><em>display</em>: QAK → web. Canale per le risposte testuali alle richieste di carico
+                (<tt>slot1</tt>…<tt>slot4</tt>, <tt>no_slots_avail</tt>, <tt>already_occupied</tt>,
+                <tt>out_of_service</tt>, <tt>not_arrived</tt>).</li>
+            <li><em>state</em>: QAK → web. Canale dedicato agli aggiornamenti di stato del sistema
+                (<tt>DISENGAGED</tt>, <tt>ENGAGED</tt>, <tt>OUT_OF_SERVICE</tt>).</li>
+            <li><em>holdstatus</em>: QAK → web. Canale dedicato all'occupazione degli slot
+                (stringa binaria, es. <tt>"0110"</tt>).</li>
+        </ol>
+        <p>
+            Per la comunicazione tra il web server e il browser utilizziamo
+            <a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events">Server-Sent Events (SSE)</a>:
+            il browser si iscrive all'endpoint <tt>/events</tt> e riceve aggiornamenti in push ogni volta che il
+            server riceve un messaggio MQTT rilevante. Questo approccio evita il polling e mantiene la pagina
+            sempre aggiornata in tempo reale.
+            <br><br>
+            In ottica di separazione delle responsabilità, riteniamo necessario creare dei servizi dedicati
+            che implementino la logica legata al funzionamento di questi componenti, all'interno di un nuovo
+            contesto QAK <tt>ctx_ioport</tt>: <bc>pushbuttonservice</bc>, <bc>displayservice</bc>,
+            <bc>stateservice</bc> e <bc>holdstatusservice</bc>.
+        </p>
+
+        <h3>pushbuttonservice</h3>
+        <p>
+            Questo attore implementa la logica legata all'invio della richiesta di carico e alla ricezione della
+            risposta. <bc>pushbuttonservice</bc> si iscrive al topic MQTT <em>pushbutton</em>, intercetta gli
+            eventi di pressione del bottone, e invia una Request <tt>load_request</tt> a <bc>cargoservice</bc>,
+            innescando la procedura di core business implementata nello
+            <a href="https://froffia.github.io/ISS_26_Cargoservice/sprint1_v1.html">Sprint 1</a>.
+            <br><br>
+            Si mette quindi in attesa di Reply, che può essere:
+        </p>
+        <ul>
+            <li><tt>load_accepted(SLOT)</tt>: la richiesta è accettata; il payload contiene il nome dello slot
+                prenotato (es. <tt>slot2</tt>);</li>
+            <li><tt>load_rejected(no_slots_avail)</tt>: la richiesta è rifiutata perché la hold è piena;</li>
+            <li><tt>retrylater(already_occupied)</tt>: la IOPort è già occupata da un cargo;</li>
+            <li><tt>retrylater(out_of_service)</tt>: il sistema è in stato <tt>OUT_OF_SERVICE</tt>.</li>
+        </ul>
+        <p>
+            In tutti i casi, <bc>pushbuttonservice</bc> estrae il payload della Reply con <tt>payloadArg(0)</tt>
+            e lo emette come evento interno QAK <tt>display</tt>, affidando a <bc>displayservice</bc> l'inoltro
+            verso la WebGUI.
+        </p>
+
+        <h3>displayservice</h3>
+        <p>
+            Definiamo un evento interno QAK <tt>display(MSG)</tt> come punto di accesso unificato per i
+            messaggi testuali diretti alla WebGUI. Chiunque voglia notificare un esito testuale emette questo
+            evento; <bc>displayservice</bc> lo intercetta e lo pubblica sul topic MQTT <em>display</em>.
+            Sul topic <em>display</em> transitano quindi solo le risposte alle richieste di carico
+            (<tt>slot1</tt>…<tt>slot4</tt>, <tt>no_slots_avail</tt>, <tt>already_occupied</tt>,
+            <tt>out_of_service</tt>) e la notifica di timeout cargo (<tt>not_arrived</tt>), quest'ultima
+            emessa direttamente da <bc>cargoservice</bc> via evento cross-context.
+        </p>
+
+        <h3>stateservice</h3>
+        <p>
+            Analogamente a <bc>displayservice</bc>, definiamo un evento interno QAK <tt>system_state(STATE)</tt>
+            per i cambi di stato del sistema. <bc>cargoservice</bc> emette questo evento ad ogni transizione di
+            stato (<tt>DISENGAGED</tt>, <tt>ENGAGED</tt>, <tt>OUT_OF_SERVICE</tt>); <bc>stateservice</bc>, in
+            ascolto nel contesto <tt>ctx_ioport</tt>, lo intercetta e pubblica sul topic MQTT dedicato
+            <em>state</em>. La separazione su topic distinto evita qualsiasi logica di classificazione lato
+            web server: il topic stesso identifica il tipo di messaggio.
+        </p>
+
+        <h3>holdstatusservice</h3>
+        <p>
+            Ci siamo chiesti come gestire l'aggiornamento dello stato di occupazione degli slot sulla WebGUI.
+            La soluzione più semplice sarebbe stata comandare aggiornamenti sincroni direttamente da
+            <bc>cargoservice</bc> in punti specifici dell'esecuzione. Abbiamo però ritenuto questo approccio
+            poco robusto — non responsivo a errori durante la movimentazione — e in contrasto con il principio di
+            separazione delle responsabilità, in quanto avrebbe introdotto logica di presentazione nel core business.
+            <br><br>
+            Abbiamo quindi creato l'attore <bc>holdstatusservice</bc>, all'interno del contesto <tt>ctx_ioport</tt>,
+            con l'unica responsabilità di richiedere aggiornamenti sullo stato della hold su sollecitazione.
+            <bc>holdstatusservice</bc> si iscrive al topic MQTT <em>holdstatusrequest</em> e, ogni volta che
+            riceve un messaggio su quel topic, invia a <bc>holdservice</bc> una Request <tt>get_hold_status</tt>.
+            <bc>holdservice</bc> risponde con <tt>hold_status(S)</tt>, dove <tt>S</tt> è una stringa di caratteri
+            binari che rappresenta lo stato aggiornato di ciascun slot (<tt>1</tt> occupato, <tt>0</tt> libero).
+            L'aggiornamento viene pubblicato direttamente sul topic MQTT dedicato <em>holdstatus</em>,
+            senza passare per <bc>displayservice</bc>, dato che si tratta di un tipo di dato strutturalmente
+            diverso dagli altri messaggi testuali.
+            <br><br>
+            Sul lato web, il server pubblica automaticamente su <em>holdstatusrequest</em> nei seguenti momenti:
+        </p>
+        <ul>
+            <li>alla prima connessione al broker MQTT, per ottenere lo stato iniziale;</li>
+            <li>1,5 secondi dopo aver ricevuto qualsiasi risposta testuale (carico accettato, rifiutato, etc.),
+                per riflettere tempestivamente la variazione della hold.</li>
+        </ul>
 
         <h2>Architettura</h2>
         <p>
-
+            Di seguito illustriamo l'architettura QAK prodotta al termine dello Sprint 3, con il nuovo contesto
+            <tt>ctx_ioport</tt> che ospita <bc>pushbuttonservice</bc>, <bc>displayservice</bc>,
+            <bc>stateservice</bc> e <bc>holdstatusservice</bc>. Per una visione d'insieme dell'architettura finale prototipale, si rimanda
+            all'<a href="https://froffia.github.io/ISS_26_Cargoservice/sprint0_v3.html#arch">architettura prodotta
+            nello Sprint 0</a>.
         </p>
-        <img src="img/arch2_gen.png" width="100%">
-        <img src="img/arch2_devices_gen.png" width="60%">
-
-        <h2 id="deployment">Deployment</h2>
-        <p>
-            Uno dei pregi del linguaggio di modellazione QAK è la possibilità di creare un modello eseguibile del
-            sistema. Al termine di questo sprint è stato infatti realizzato tale modello eseguibile, di cui è
-            possibile effettuare il deployment seguendo questi passi:
-        </p>
-        <ol>
-            <li>Creare e avviare i container di supporto per l'ambiente virtuale del robot con docker compose,
-                definiti nel file
-                <a href="https://github.com/anatali/issLab2026/blob/main/robotsmart26/yamls/robotsmart26.yaml">robotsmart26.yaml</a>
-                (le istruzioni per il deployment si trovano in fondo al file).</li>
-            <li>Collegarsi alla pagina web dell'ambiente virtuale, all'indirizzo
-                <a href="http://localhost:8085/">http://localhost:8085/</a>.</li>
-            <li>Importare il progetto sprint2 in Eclipse come progetto Gradle.</li>
-            <li>Importare il progetto devices in Eclipse come progetto Gradle.</li>
-            <li>Lanciare il sistema tramite la Gradle Task run, oppure con il comando <code>gradlew run</code>.</li>
-        </ol>
-        <p>
-            Riguardo il sensore, il led e il pushbutton di test è necessario:
-            <ol>
-                <li>Avviare la task gradle fatJar con il comando <code>gradlew fatJar</code> per generare il jar eseguibile del software del contesto <tt>ctx_sensor</tt></li>
-                <li>Spostare il jar <code>ISS_26_Cargoservice\sprint2\devices\build\libs\devices-1.0-fat.jar</code> in qualsiasi posizione del Raspberry Pi</li>
-                <li>Spostare il middleware python <code>ISS_26_Cargoservice\sprint2\devices\python\sensor.py</code> in qualsiasi posizione del Raspberry Pi</li>
-                <li>Connettere l'hardware nel seguente modo:
-                    <ul>
-                        Sensore a ultrasuoni HC-SR04:
-                        <li>Trigger: GPIO 23</li>
-                        <li>Echo: GPIO 24</li>
-                        LED:
-                        <li>Anodo: GPIO 27</li>
-                        Pulsante:
-                        <li>GPIO 17</li>
-                    </ul>
-                </li>
-                <li>Lanciare il middleware python con <code>python3 sensor.py</code></li>
-                <li>Avviare il sistema con <code>java -jar devices-1.0-fat.jar</code></li>
-            </ol>
-            Il sistema è stato testato su Raspberry Pi 3B+. Il nome e numero dei GPIO può variare a seconda della versione. 
-        </p>
-
-        <h2>Considerazioni Sprint 3 e Conclusioni</h2>
-        <p>
-        
-        </p>
+        <!-- INSERIRE IMMAGINE ARCHITETTURA SPRINT 3 -->
 
     </div>
-
 
     <div style="background-color:rgba(86, 56, 253, 0.9); width:60%; text-align:left; color:white; padding:8px; font-size: large;">
         By Andrea Gazzola <img src="img/fotoA.jpg" width="100px"> and Francesco Roffia <img src="img/fotoF.png" width="100px"> <a style="color:#aaddff" href="https://github.com/FRoffia/ISS_26_Cargoservice">

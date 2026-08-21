@@ -33,6 +33,7 @@ dispatch( led_blink, led_blink(X) ).
 dispatch( led_off, led_off(X) ).
 dispatch( already_home, already_home(X) ).
 event( display, display(MESSAGE) ).
+event( system_state, system_state(STATE) ).
 %====================================================================================
 context(ctx_cargoservice, "localhost",  "TCP", "8010").
 context(ctxrobotsmart, "127.0.0.1",  "TCP", "8020").
@@ -42,6 +43,7 @@ context(ctx_ioport, "127.0.0.2",  "TCP", "8040").
   qactor( sensorservice, ctx_sensor, "external").
   qactor( ledservice, ctx_sensor, "external").
   qactor( displayservice, ctx_ioport, "external").
+  qactor( stateservice, ctx_ioport, "external").
   qactor( cargoservice, ctx_cargoservice, "it.unibo.cargoservice.Cargoservice").
  static(cargoservice).
   qactor( cargorobot, ctx_cargoservice, "it.unibo.cargorobot.Cargorobot").

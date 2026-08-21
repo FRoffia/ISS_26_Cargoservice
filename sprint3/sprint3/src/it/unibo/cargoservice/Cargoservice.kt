@@ -34,6 +34,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				var Delay = 30000
 				var DelayLong = 30000L
 				var Msg = ""
+				var CargoInTransit = false
 		return { //this:ActionBasciFsm
 				state("s0") { //this:State
 					action { //it:State
@@ -49,7 +50,7 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				state("disengaged") { //this:State
 					action { //it:State
 						 Msg = "DISENGAGED" 
-						emit("display", "display($Msg)" ) 
+						emit("system_state", "system_state($Msg)" ) 
 						CommUtils.outgreen("cargoservice | DISENGAGED: waiting for cargo load request")
 						forward("led_off", "led_off(X)" ,"ledservice" ) 
 						//genTimer( actor, state )
@@ -155,8 +156,10 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				}	 
 				state("engaged") { //this:State
 					action { //it:State
-						 Msg = "ENGAGED"  
-						emit("display", "display($Msg)" ) 
+						  
+						    		Msg = "ENGAGED"
+						    		CargoInTransit = true
+						emit("system_state", "system_state($Msg)" ) 
 						CommUtils.outblue("cargoservice | System engaged, load operation is being handled by cargorobot")
 						request("handle_cargo_load", "handle_cargo_load($Cur_reserved_slot)" ,"cargorobot" )  
 						forward("led_blink", "led_blink(X)" ,"ledservice" ) 
@@ -184,8 +187,11 @@ class Cargoservice ( name: String, scope: CoroutineScope, isconfined: Boolean=fa
 				state("outOfService") { //this:State
 					action { //it:State
 						 Msg = "OUT_OF_SERVICE"  
-						emit("display", "display($Msg)" ) 
+						emit("system_state", "system_state($Msg)" ) 
 						CommUtils.outred("cargoservice | sensor error: OUT OF SERVICE!")
+						 if(!CargoInTransit){ 
+						forward("free_slot", "free_slot($Cur_reserved_slot)" ,"holdservice" ) 
+						} 
 						//genTimer( actor, state )
 					}
 					//After Lenzi Aug2002

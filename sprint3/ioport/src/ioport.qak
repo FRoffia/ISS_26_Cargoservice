@@ -8,8 +8,11 @@ Reply    load_accepted : load_accepted(SLOT) for load_request
 Reply    load_rejected : load_rejected(X)    for load_request
 Reply    retrylater    : retrylater(X)       for load_request
 
-//evento per chiedere a displayservice di mostrare un messaggio
+//evento per chiedere a displayservice di mostrare un messaggio testuale
 Event display : display(MESSAGE)
+
+//evento di aggiornamento stato sistema inviato da cargoservice
+Event system_state : system_state(STATE)
 
 //evento da pubblicare su mqtt per raggiungere web
 Event display_web : display_web(MESSAGE)
@@ -147,8 +150,32 @@ QActor holdstatusservice context ctx_ioport{
         onMsg(hold_status : hold_status(S)){
             [# Status = payloadArg(0) #]
         }
-        emitlocal display : display($Status)
-        //publish "display" -m display_web : display_web($Status)
+        publish "holdstatus" -m display_web : display_web($Status)
     }
     Goto wait_for_request
+}
+
+//pubblica gli aggiornamenti di stato sistema sul topic mqtt dedicato
+QActor stateservice context ctx_ioport{
+
+    [#
+        var St = ""
+    #]
+
+    State s0 initial{
+        connectToMqttBroker "tcp://localhost:1883"
+    }
+    Goto wait_for_state
+
+    State wait_for_state{ }
+    Transition t0
+        whenEvent system_state -> publish_state
+
+    State publish_state{
+        onMsg(system_state : system_state(S)){
+            [# St = payloadArg(0) #]
+        }
+        publish "state" -m display_web : display_web($St)
+    }
+    Goto wait_for_state
 }
