@@ -70,8 +70,8 @@
             </div>
             <li>Un display per i messaggi di risposta alle richieste di carico.</li>
             <div class="remark">
-                ANALISI: un elemento HTML aggiornato via JavaScript al ricevimento di eventi SSE
-                (Server-Sent Events) dal web server. Il testo mostrato deriva dai payload
+                ANALISI: un elemento HTML aggiornato via JavaScript al ricevimento di eventi <a href="https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events">SSE
+                (Server-Sent Events)</a> dal web server. Il testo mostrato deriva dai payload
                 emessi dal resto del sistema con eventi <tt>display</tt>. Dato che i payload dei messaggi QAK possono contenere 
                 solo stringhe atomiche, inviamo dei "codici" che verranno tradotti poi in un testo esteso da JavaScript, come ad esempio:
                 il nome dello slot prenotato (<tt>slot1</tt>…<tt>slot4</tt>) per il carico accettato, <tt>no_slots_avail</tt> per la hold
@@ -176,7 +176,7 @@
             Ci siamo chiesti come gestire l'aggiornamento dello stato di occupazione degli slot sulla WebGUI.
             La soluzione più semplice sarebbe stata comandare aggiornamenti sincroni direttamente da
             <bc>cargoservice</bc> in punti specifici dell'esecuzione. Abbiamo però ritenuto questo approccio
-            poco robusto — non responsivo a errori durante la movimentazione — e in contrasto con il principio di
+            poco robusto, non responsivo a errori durante la movimentazione, e in contrasto con il principio di
             separazione delle responsabilità, in quanto avrebbe introdotto logica di presentazione nel core business.
             <br><br>
             Abbiamo quindi creato l'attore <bc>holdstatusservice</bc>, all'interno del contesto <tt>ctx_ioport</tt>,
